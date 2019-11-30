@@ -1,6 +1,9 @@
 package kernel
 
 import (
+	"fmt"
+	"math/rand"
+	"os"
 	"reflect"
 	"testing"
 )
@@ -109,6 +112,23 @@ func TestEventList_push(t *testing.T) {
 				t.Errorf("%s: top() = %v, want %v", tt.name, eventlist.top(), tt.want)
 			}
 		})
+	}
+	//test zb 35 33 42 10 14 19 27 44 26 31
+	fmt.Println("zb")
+	eventlist = EventList{}
+	eventlist.push(&Event{time: 35, priority: 0})
+	eventlist.push(&Event{time: 33, priority: 0})
+	eventlist.push(&Event{time: 42, priority: 0})
+	eventlist.push(&Event{time: 10, priority: 0})
+	eventlist.push(&Event{time: 14, priority: 0})
+	eventlist.push(&Event{time: 19, priority: 0})
+	eventlist.push(&Event{time: 27, priority: 0})
+	eventlist.push(&Event{time: 44, priority: 0})
+	eventlist.push(&Event{time: 26, priority: 0})
+	eventlist.push(&Event{time: 31, priority: 0})
+	for ;eventlist.size()>0;{
+		fmt.Print("pop")
+		fmt.Println(eventlist.pop())
 	}
 }
 
@@ -261,7 +281,6 @@ func TestEventList_top(t *testing.T) {
 	eventlist.push(event4)
 	eventlist.push(event5)
 	fields1 := fields{eventlist.events}
-
 	tests := []struct {
 		name   string
 		fields fields
@@ -277,5 +296,40 @@ func TestEventList_top(t *testing.T) {
 				t.Errorf("top() != pop() %v", got)
 			}
 		})
+	}
+}
+
+func TestEventList_merge(t *testing.T) {
+	type fields struct {
+		events PriorityQueue
+	}
+	eventlist := EventList{}
+	eventlist2 := EventList{}
+	eventlist3 := EventList{}
+	a := 474
+	b := 632
+	for i:=0;i<a;i++{
+		event := &Event{priority: rand.Intn(100), time: uint64(rand.Intn(100))}
+		eventlist.push(event)
+		eventlist3.push(event)
+	}
+	for i:=0;i<b;i++{
+		event := &Event{priority: rand.Intn(100), time: uint64(rand.Intn(100))}
+		eventlist2.push(event)
+		eventlist3.push(event)
+	}
+	eventlist.merge(eventlist2)
+
+	for ;eventlist.size()>0;{
+		cc := eventlist.pop()
+		bb := eventlist3.pop()
+		if cc.time!=bb.time || cc.priority!= bb.priority {
+			fmt.Println(cc.time)
+			fmt.Println(bb.time)
+			fmt.Println(cc.priority)
+			fmt.Println(bb.priority)
+			fmt.Println(eventlist.size())
+			os.Exit(-1)
+		}
 	}
 }
