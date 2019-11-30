@@ -6,6 +6,6 @@ type EntityInterface interface {
 
 type Entity struct {
 	name     string
-	timeline Timeline
+	timeline *Timeline
 	EntityInterface
 }
