@@ -59,26 +59,27 @@ func (EventList *EventList) minHeapify(n,i int){
 
 type PriorityQueue []*Event
 
-func (evenlist PriorityQueue) Len() int { return len(evenlist) }
+func (pq PriorityQueue) Len() int { return len(pq) }
 
-func (evenlist PriorityQueue) Less(i, j int) bool {
-	return evenlist[i].time < evenlist[j].time || (evenlist[i].time == evenlist[j].time && evenlist[i].priority < evenlist[j].priority)
+func (pq PriorityQueue) Less(i, j int) bool {
+	return pq[i].time < pq[j].time || (pq[i].time == pq[j].time && pq[i].priority < pq[j].priority)
 }
 
-func (evenlist PriorityQueue) Swap(i, j int) {
-	evenlist[i], evenlist[j] = evenlist[j], evenlist[i]
+func (pq PriorityQueue) Swap(i, j int) {
+	pq[i], pq[j] = pq[j], pq[i]
 }
 
-func (evenlist *PriorityQueue) Push(x interface{}) {
+func (pq *PriorityQueue) Push(x interface{}) {
 	event := x.(*Event)
-	*evenlist = append(*evenlist, event)
+	*pq = append(*pq, event)
 }
 
-func (evenlist *PriorityQueue) Pop() interface{} {
-	old := *evenlist
+func (pq *PriorityQueue) Pop() interface{} {
+	old := *pq
 	n := len(old)
 	event := old[n-1]
 	old[n-1] = nil // avoid memory leak
-	*evenlist = old[0 : n-1]
+	*pq = old[0 : n-1]
 	return event
 }
+//
