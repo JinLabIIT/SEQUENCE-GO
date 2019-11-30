@@ -82,3 +82,4 @@ func (pq *PriorityQueue) Pop() interface{} {
 	*pq = old[0 : n-1]
 	return event
 }
+//
