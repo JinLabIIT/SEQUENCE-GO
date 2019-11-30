@@ -42,9 +42,9 @@ func (t *Timeline) Schedule(event *Event) {
 	}
 
 }
-
+// get event in the event buffer
 func (t *Timeline) getCrossTimelineEvents() {
-	// TODO
+	// TODO here
 }
 
 func (t *Timeline) updateNextStopTime() {
