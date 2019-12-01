@@ -1,12 +1,12 @@
 package kernel
 
 type Timeline struct {
-	time          uint64
-	events        EventList
-	entities      []Entity
-	endTime       uint64
-	nextStopTime  uint64
-	activeChannel *InChannel
+	time         uint64
+	events       EventList
+	entities     []Entity
+	endTime      uint64
+	nextStopTime uint64
+	eventbuffer  EventBuffer
 }
 
 func (t *Timeline) init() {
@@ -29,24 +29,29 @@ func (t *Timeline) setEntities(entities []Entity) {
 	t.entities = entities
 }
 
-func (t *Timeline) now() uint64 {
+func (t *Timeline) Now() uint64 {
 	return t.time
 }
 
-func (t *Timeline) schedule(time uint64, process *Process) {
-	event := &Event{time: time, process: process}
-	t.events.push(event)
-}
+func (t *Timeline) Schedule(event *Event) {
 
+	if t == event.process.owner.timeline {
+		t.events.push(event)
+	} else {
+		t.eventbuffer.push(event)
+	}
+
+}
+// get event in the event buffer
 func (t *Timeline) getCrossTimelineEvents() {
-	// TODO
+	// TODO here
 }
 
 func (t *Timeline) updateNextStopTime() {
 	// TODO
 }
 
-func (t *Timeline) sync_window() {
+func (t *Timeline) syncWindow() {
 	// method sync_window() is called to do all the processing
 	// associated with the window.
 	// TODO
@@ -57,6 +62,6 @@ func (t *Timeline) run() {
 		// TODO
 		t.getCrossTimelineEvents()
 		t.updateNextStopTime()
-		t.sync_window()
+		t.syncWindow()
 	}
 }
