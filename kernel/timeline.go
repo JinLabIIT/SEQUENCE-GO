@@ -7,22 +7,17 @@ type Timeline struct {
 	endTime      uint64
 	nextStopTime uint64
 	eventbuffer  EventBuffer
+	otherTimeline []*Timeline
 }
 
 func (t *Timeline) init() {
-	t.endTime = 0
-	t.time = 0
-	t.entityInit()
+	for _, entity := range t.entities {
+		entity.init()
+	}
 }
 
 func (t *Timeline) setStopTime(stop_time uint64) {
 	t.endTime = stop_time
-}
-
-func (t *Timeline) entityInit() {
-	for _, entity := range t.entities {
-		entity.init()
-	}
 }
 
 func (t *Timeline) setEntities(entities []Entity) {
@@ -34,17 +29,18 @@ func (t *Timeline) Now() uint64 {
 }
 
 func (t *Timeline) Schedule(event *Event) {
-
 	if t == event.process.owner.timeline {
 		t.events.push(event)
 	} else {
 		t.eventbuffer.push(event)
 	}
-
 }
-// get event in the event buffer
+// get events in the event buffer
 func (t *Timeline) getCrossTimelineEvents() {
-	// TODO here
+	for _, timeline := range t.otherTimeline{
+		t.events.merge(*t.eventbuffer[timeline])
+		t.eventbuffer.clean()
+	}
 }
 
 func (t *Timeline) updateNextStopTime() {
