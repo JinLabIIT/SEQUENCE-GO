@@ -4,21 +4,18 @@ package kernel
 import "sync"
 
 type Barrier struct {
-	c      int
 	n      int
+	c      int
 	m      sync.Mutex
 	before chan int
 	after  chan int
 }
 
-func New(n int) *Barrier {
-	b := Barrier{
-		n:      n,
-		before: make(chan int, n),
-		after:  make(chan int, n),
-	}
-	return &b
+func (b *Barrier) Init() {
+	b.before = make(chan int, b.n)
+	b.after = make(chan int, b.n)
 }
+
 func (b *Barrier) waitEventExchange() {
 	b.m.Lock()
 	b.c += 1
