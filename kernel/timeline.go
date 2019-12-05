@@ -44,13 +44,12 @@ func (t *Timeline) getCrossTimelineEvents() {
 	}
 }
 
-func (t *Timeline) uploadNextStopTime(tmp map[*Timeline]uint64) {
-	next_stop := t.events.top().time + t.look_head
-	tmp[t] = next_stop
+func (t *Timeline) minNextStopTime() uint64 {
+	return t.events.top().time + t.look_head
 }
 
-func (t *Timeline) updateNextStopTime() {
-	//next_stop := t.events.top().time+t.look_head
+func (t *Timeline) updateNextStopTime(nextStop uint64) {
+	t.nextStopTime = nextStop
 
 }
 
@@ -66,13 +65,13 @@ func (t *Timeline) syncWindow() {
 	}
 }
 
-func (t *Timeline) run(br *Barrier, tmp map[*Timeline]uint64) {
+func (t *Timeline) run(br *Barrier) {
 	for {
 		// TODO
 		t.getCrossTimelineEvents()
-		t.uploadNextStopTime(tmp)
-		//nxt = br.waitEventExchange(6)
-		t.updateNextStopTime()
+		nextStop := t.minNextStopTime()
+		nextStop = br.waitEventExchange(nextStop)
+		t.updateNextStopTime(nextStop)
 		t.syncWindow()
 		br.waitExecution()
 	}
