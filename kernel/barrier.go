@@ -1,14 +1,17 @@
 // github.com/mlowicki/barrier2
 package kernel
 
-import "sync"
+import (
+	"sync"
+)
 
 type Barrier struct {
-	n      int
-	c      int
-	m      sync.Mutex
-	before chan int
-	after  chan int
+	n         int
+	c         int
+	m         sync.Mutex
+	before    chan int
+	after     chan int
+	next_stop uint64
 }
 
 func (b *Barrier) Init() {
@@ -16,9 +19,10 @@ func (b *Barrier) Init() {
 	b.after = make(chan int, b.n)
 }
 
-func (b *Barrier) waitEventExchange() {
+func (b *Barrier) waitEventExchange(_next_stop uint64) uint64 {
 	b.m.Lock()
 	b.c += 1
+	b.next_stop = min(_next_stop, b.next_stop)
 	if b.c == b.n {
 		// open 2nd gate
 		for i := 0; i < b.n; i++ {
@@ -27,6 +31,7 @@ func (b *Barrier) waitEventExchange() {
 	}
 	b.m.Unlock()
 	<-b.before
+	return b.next_stop
 }
 func (b *Barrier) waitExecution() {
 	b.m.Lock()
@@ -39,4 +44,11 @@ func (b *Barrier) waitExecution() {
 	}
 	b.m.Unlock()
 	<-b.after
+}
+
+func min(a, b uint64) uint64 {
+	if a > b {
+		return a
+	}
+	return b
 }

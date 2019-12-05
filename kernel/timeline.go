@@ -1,13 +1,14 @@
 package kernel
 
 type Timeline struct {
-	time         uint64
-	events       EventList
-	entities     []Entity
-	endTime      uint64
-	nextStopTime uint64
-	eventbuffer  EventBuffer
+	time          uint64
+	events        EventList
+	entities      []Entity
+	endTime       uint64
+	nextStopTime  uint64
+	eventbuffer   EventBuffer
 	otherTimeline []*Timeline
+	look_head     uint64
 }
 
 func (t *Timeline) init() {
@@ -35,29 +36,44 @@ func (t *Timeline) Schedule(event *Event) {
 		t.eventbuffer.push(event)
 	}
 }
+
 // get events in the event buffer
 func (t *Timeline) getCrossTimelineEvents() {
-	for _, timeline := range t.otherTimeline{
+	for _, timeline := range t.otherTimeline {
 		t.events.merge(*t.eventbuffer[timeline])
-		t.eventbuffer.clean()
 	}
 }
 
+func (t *Timeline) uploadNextStopTime(tmp map[*Timeline]uint64) {
+	next_stop := t.events.top().time + t.look_head
+	tmp[t] = next_stop
+}
+
 func (t *Timeline) updateNextStopTime() {
-	// TODO
+	//next_stop := t.events.top().time+t.look_head
+
 }
 
 func (t *Timeline) syncWindow() {
-	// method sync_window() is called to do all the processing
-	// associated with the window.
-	// TODO
+	for t.time < t.endTime {
+		event := t.events.top()
+		if event.time > t.endTime {
+			return
+		}
+		t.time = event.time
+		event = t.events.pop()
+		event.process.run()
+	}
 }
 
-func (t *Timeline) run() {
+func (t *Timeline) run(br *Barrier, tmp map[*Timeline]uint64) {
 	for {
 		// TODO
 		t.getCrossTimelineEvents()
+		t.uploadNextStopTime(tmp)
+		//nxt = br.waitEventExchange(6)
 		t.updateNextStopTime()
 		t.syncWindow()
+		br.waitExecution()
 	}
 }
