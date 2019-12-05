@@ -2,6 +2,7 @@
 package kernel
 
 import (
+	"math"
 	"sync"
 )
 
@@ -17,6 +18,7 @@ type Barrier struct {
 func (b *Barrier) Init() {
 	b.before = make(chan int, b.n)
 	b.after = make(chan int, b.n)
+	b.next_stop = uint64(math.MaxInt64)
 }
 
 func (b *Barrier) waitEventExchange(_next_stop uint64) uint64 {
@@ -37,6 +39,7 @@ func (b *Barrier) waitExecution() {
 	b.m.Lock()
 	b.c -= 1
 	if b.c == 0 {
+		b.next_stop = uint64(math.MaxInt64)
 		// open 1st gate
 		for i := 0; i < b.n; i++ {
 			b.after <- 1
@@ -48,7 +51,7 @@ func (b *Barrier) waitExecution() {
 
 func min(a, b uint64) uint64 {
 	if a > b {
-		return a
+		return b
 	}
-	return b
+	return a
 }

@@ -67,7 +67,6 @@ func (t *Timeline) syncWindow() {
 
 func (t *Timeline) run(br *Barrier) {
 	for {
-		// TODO
 		t.getCrossTimelineEvents()
 		nextStop := t.minNextStopTime()
 		nextStop = br.waitEventExchange(nextStop)
