@@ -40,7 +40,10 @@ func (t *Timeline) Schedule(event *Event) {
 // get events in the event buffer
 func (t *Timeline) getCrossTimelineEvents() {
 	for _, timeline := range t.otherTimeline {
-		t.events.merge(*t.eventbuffer[timeline])
+		if timeline.eventbuffer[t] == nil {
+			continue
+		}
+		t.events.merge(*timeline.eventbuffer[t])
 	}
 }
 
@@ -54,9 +57,9 @@ func (t *Timeline) updateNextStopTime(nextStop uint64) {
 }
 
 func (t *Timeline) syncWindow() {
-	for t.time < t.endTime {
+	for t.time < t.nextStopTime {
 		event := t.events.top()
-		if event.time > t.endTime {
+		if event.time > t.nextStopTime {
 			return
 		}
 		t.time = event.time
@@ -71,6 +74,7 @@ func (t *Timeline) run(br *Barrier) {
 		nextStop := t.minNextStopTime()
 		nextStop = br.waitEventExchange(nextStop)
 		t.updateNextStopTime(nextStop)
+		t.eventbuffer.clean(t)
 		t.syncWindow()
 		br.waitExecution()
 	}
