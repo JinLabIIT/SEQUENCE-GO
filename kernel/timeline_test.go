@@ -7,6 +7,15 @@ import (
 	"testing"
 )
 
+func initTimeline(n int) []*Timeline {
+	tl := make([]*Timeline, n)
+	for i := 0; i < n; i++ {
+		tl[i] = &Timeline{time: uint64(i)}
+		tl[i].otherTimeline = tl
+	}
+	return tl
+}
+
 func TestTimeline_Schedule(t *testing.T) {
 	fmt.Println("TestTimeline_Schedule starts")
 	eventlist := EventList{}
@@ -23,27 +32,33 @@ func TestTimeline_Schedule(t *testing.T) {
 	}
 }
 func TestTimeline_getCrossTimelineEvents(t *testing.T) {
-	n := 30                    //No. timeline
-	a := 100                   //No. event
-	tl := make([]*Timeline, n) //init timeline
-
+	n := 20               //No. timeline
+	a := 1000             //No. event
+	tl := initTimeline(n) //init timeline
+	eventsize := make([]int, n)
+	eventbufferlist := make([]EventBuffer, n)
+	rd := make([]int, n*a)
 	for i := 0; i < n; i++ {
 		eventbuffer := make(EventBuffer)
-		tmp_tl := Timeline{time: uint64(i)}
-		tl[i] = &tmp_tl
 		tl[i].otherTimeline = tl
 		for j := 0; j < a; j++ {
 			random := rand.Intn(n)
+			rd[(i+1)*j] = random
 			entity := Entity{timeline: tl[random]}
+			eventsize[random] += 1
 			process := Process{owner: &entity}
 			event := &Event{time: uint64(rand.Intn(10)), priority: rand.Intn(10), process: &process}
 			eventbuffer.push(event)
 		}
+		eventbufferlist[i] = eventbuffer
 		tl[i].eventbuffer = eventbuffer
+		fmt.Println(rd)
 	}
 
+	size := make([]int, n)
 	for i := 0; i < n; i++ {
 		tl[i].getCrossTimelineEvents()
+		size[i] = tl[i].events.size()
 	}
 
 	for _, timeline := range tl {
@@ -56,4 +71,7 @@ func TestTimeline_getCrossTimelineEvents(t *testing.T) {
 			})
 		}
 	}
+}
+func TestTimeline_syncWindow(t *testing.T) {
+
 }

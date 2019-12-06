@@ -39,12 +39,17 @@ func (t *Timeline) Schedule(event *Event) {
 
 // get events in the event buffer
 func (t *Timeline) getCrossTimelineEvents() {
+	tmp := 0
+	index := 0
 	for _, timeline := range t.otherTimeline {
+		index++
 		if timeline.eventbuffer[t] == nil {
 			continue
 		}
+		tmp = tmp + timeline.eventbuffer[t].size()
 		t.events.merge(*timeline.eventbuffer[t])
 	}
+	//fmt.Println("here is getcrosstimelineevents and tmp is: ")
 }
 
 func (t *Timeline) minNextStopTime() uint64 {
