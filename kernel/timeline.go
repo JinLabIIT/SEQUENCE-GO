@@ -1,5 +1,12 @@
 package kernel
 
+import (
+	"fmt"
+	"os"
+)
+
+//import "gotest.tools/assert"
+
 type Timeline struct {
 	time          uint64
 	events        EventList
@@ -30,6 +37,10 @@ func (t *Timeline) Now() uint64 {
 }
 
 func (t *Timeline) Schedule(event *Event) {
+	if t.time > event.time {
+		fmt.Println("ERROR: cannot schedule an event in the past time")
+		os.Exit(3) //cannot schedule an event in the past time
+	}
 	if t == event.process.owner.timeline {
 		t.events.push(event)
 	} else {
@@ -62,13 +73,10 @@ func (t *Timeline) updateNextStopTime(nextStop uint64) {
 }
 
 func (t *Timeline) syncWindow() {
-	for t.time < t.nextStopTime {
-		event := t.events.top()
-		if event.time > t.nextStopTime {
-			return
-		}
+
+	for t.events.top().time < t.nextStopTime {
+		event := t.events.pop()
 		t.time = event.time
-		event = t.events.pop()
 		event.process.run()
 	}
 }
