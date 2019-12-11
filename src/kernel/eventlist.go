@@ -7,53 +7,57 @@ import (
 type EventList struct {
 	events PriorityQueue
 }
+
 //return the size of the eventlist
 func (eventlist *EventList) size() int {
 	return eventlist.events.Len()
 }
+
 //return the first element of the eventlist
 func (eventlist *EventList) top() *Event {
 	return eventlist.events[0]
 }
+
 //push
 func (eventlist *EventList) push(event *Event) {
 	heap.Push(&eventlist.events, event)
 }
+
 //pop
 func (eventlist *EventList) pop() *Event {
 	return heap.Pop(&eventlist.events).(*Event)
 }
 
-func (EventList *EventList) merge(new EventList){
+func (EventList *EventList) merge(new EventList) {
 	a := EventList.events.Len()
 	b := new.events.Len()
-	n := a+b
-	for i := 0; i < new.events.Len(); i++{
+	n := a + b
+	for i := 0; i < new.events.Len(); i++ {
 		EventList.events = append(EventList.events, new.events[i])
 	}
-	for i := int(n / 2) - 1; i >= 0; i--{
+	for i := int(n/2) - 1; i >= 0; i-- {
 		EventList.minHeapify(n, i)
 	}
 }
 
-func (EventList *EventList) minHeapify(n,i int){
+func (EventList *EventList) minHeapify(n, i int) {
 	if i >= n {
 		return
 	}
-	l := i * 2 + 1
-	r := i * 2 + 2
+	l := i*2 + 1
+	r := i*2 + 2
 	var min int
-	if l < n && EventList.events.Less(l,i) {
+	if l < n && EventList.events.Less(l, i) {
 		min = l
-	}else{
+	} else {
 		min = i
 	}
-	if r < n && EventList.events.Less(r,min){
+	if r < n && EventList.events.Less(r, min) {
 		min = r
 	}
 	if min != i {
-		EventList.events.Swap(min,i)
-		EventList.minHeapify(n,min)
+		EventList.events.Swap(min, i)
+		EventList.minHeapify(n, min)
 	}
 }
 
@@ -82,4 +86,5 @@ func (pq *PriorityQueue) Pop() interface{} {
 	*pq = old[0 : n-1]
 	return event
 }
+
 //

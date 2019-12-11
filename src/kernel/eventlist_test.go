@@ -126,7 +126,7 @@ func TestEventList_push(t *testing.T) {
 	eventlist.push(&Event{time: 44, priority: 0})
 	eventlist.push(&Event{time: 26, priority: 0})
 	eventlist.push(&Event{time: 31, priority: 0})
-	for ;eventlist.size()>0;{
+	for eventlist.size() > 0 {
 		fmt.Print("pop")
 		fmt.Println(eventlist.pop())
 	}
@@ -308,22 +308,22 @@ func TestEventList_merge(t *testing.T) {
 	eventlist3 := EventList{}
 	a := 474
 	b := 632
-	for i:=0;i<a;i++{
+	for i := 0; i < a; i++ {
 		event := &Event{priority: rand.Intn(100), time: uint64(rand.Intn(100))}
 		eventlist.push(event)
 		eventlist3.push(event)
 	}
-	for i:=0;i<b;i++{
+	for i := 0; i < b; i++ {
 		event := &Event{priority: rand.Intn(100), time: uint64(rand.Intn(100))}
 		eventlist2.push(event)
 		eventlist3.push(event)
 	}
 	eventlist.merge(eventlist2)
 
-	for ;eventlist.size()>0;{
+	for eventlist.size() > 0 {
 		cc := eventlist.pop()
 		bb := eventlist3.pop()
-		if cc.time!=bb.time || cc.priority!= bb.priority {
+		if cc.time != bb.time || cc.priority != bb.priority {
 			fmt.Println(cc.time)
 			fmt.Println(bb.time)
 			fmt.Println(cc.priority)
