@@ -39,13 +39,22 @@ func TestTimeline_Schedule(t *testing.T) {
 	timeline := Timeline{time: 0, events: eventlist}
 	test_eventlist := EventList{}
 	n := 1000
-	for n > 0 {
-		event := createEvent(&timeline, uint64(rand.Intn(10)), uint64(rand.Intn(10)))
+	for i := 0; i < n; i++ {
+		event := createEvent(&timeline, uint64(rand.Intn(10)+1), uint64(rand.Intn(10)))
 		timeline.Schedule(event)
 		test_eventlist.push(event)
-		n--
+	}
+	for test_eventlist.size() > 0 {
+		t.Run("TestTimeline_Schedule", func(t *testing.T) {
+			event_test := test_eventlist.pop()
+			event := timeline.events.pop()
+			if !reflect.DeepEqual(event_test, event) {
+				t.Errorf("something wrong")
+			}
+		})
 	}
 }
+
 func TestTimeline_getCrossTimelineEvents(t *testing.T) {
 	n := 2 //No. timeline
 	a := 1 //No. event
@@ -65,10 +74,10 @@ func TestTimeline_getCrossTimelineEvents(t *testing.T) {
 		//fmt.Println(rd)
 	}
 
-	size := make([]int, n)
+	//size := make([]int, n)
 	for i := 0; i < n; i++ {
 		tl[i].getCrossTimelineEvents()
-		size[i] = tl[i].events.size()
+		//size[i] = tl[i].events.size()
 	}
 
 	for _, timeline := range tl {

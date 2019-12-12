@@ -13,6 +13,7 @@ type Barrier struct {
 	before    chan int
 	after     chan int
 	next_stop uint64
+	maxSize   int
 }
 
 func (b *Barrier) Init() {
@@ -21,10 +22,11 @@ func (b *Barrier) Init() {
 	b.next_stop = uint64(math.MaxInt64)
 }
 
-func (b *Barrier) waitEventExchange(_next_stop uint64) uint64 {
+func (b *Barrier) waitEventExchange(_next_stop uint64, size int) uint64 {
 	b.m.Lock()
 	b.c += 1
 	b.next_stop = min(_next_stop, b.next_stop)
+	b.maxSize = max(b.maxSize, size)
 	if b.c == b.n {
 		// open 2nd gate
 		for i := 0; i < b.n; i++ {
@@ -33,6 +35,9 @@ func (b *Barrier) waitEventExchange(_next_stop uint64) uint64 {
 	}
 	b.m.Unlock()
 	<-b.before
+	if b.maxSize == 0 {
+		return -1
+	}
 	return b.next_stop
 }
 func (b *Barrier) waitExecution() {
@@ -40,6 +45,7 @@ func (b *Barrier) waitExecution() {
 	b.c -= 1
 	if b.c == 0 {
 		b.next_stop = uint64(math.MaxInt64)
+		b.maxSize = 0
 		// open 1st gate
 		for i := 0; i < b.n; i++ {
 			b.after <- 1
@@ -51,6 +57,12 @@ func (b *Barrier) waitExecution() {
 
 func min(a, b uint64) uint64 {
 	if a > b {
+		return b
+	}
+	return a
+}
+func max(a, b int) int {
+	if a < b {
 		return b
 	}
 	return a

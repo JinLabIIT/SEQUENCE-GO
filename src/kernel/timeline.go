@@ -24,7 +24,7 @@ func (t *Timeline) init() {
 	}
 }
 
-func (t *Timeline) setStopTime(stop_time uint64) {
+func (t *Timeline) SetStopTime(stop_time uint64) {
 	t.endTime = stop_time
 }
 
@@ -50,17 +50,12 @@ func (t *Timeline) Schedule(event *Event) {
 
 // get events in the event buffer
 func (t *Timeline) getCrossTimelineEvents() {
-	tmp := 0
-	index := 0
 	for _, timeline := range t.otherTimeline {
-		index++
 		if timeline.eventbuffer[t] == nil {
 			continue
 		}
-		tmp = tmp + timeline.eventbuffer[t].size()
 		t.events.merge(*timeline.eventbuffer[t])
 	}
-	//fmt.Println("here is getcrosstimelineevents and tmp is: ")
 }
 
 func (t *Timeline) minNextStopTime() uint64 {
@@ -85,7 +80,10 @@ func (t *Timeline) run(br *Barrier) {
 	for {
 		t.getCrossTimelineEvents()
 		nextStop := t.minNextStopTime()
-		nextStop = br.waitEventExchange(nextStop)
+		nextStop = br.waitEventExchange(nextStop, t.events.size())
+		if nextStop == uint64(-1) {
+			break
+		}
 		t.updateNextStopTime(nextStop)
 		t.eventbuffer.clean(t)
 		t.syncWindow()
