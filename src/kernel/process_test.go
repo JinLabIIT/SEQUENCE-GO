@@ -35,8 +35,8 @@ func TestProcess_run(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := Process{
-				fnptr:   tt.fields.fnptr,
-				message: tt.fields.message,
+				Fnptr:   tt.fields.fnptr,
+				Message: tt.fields.message,
 			}
 			fmt.Printf("%s ", tt.name)
 			p.run()

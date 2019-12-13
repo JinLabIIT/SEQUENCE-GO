@@ -42,9 +42,9 @@ func TestPriorityQueue_Less(t *testing.T) {
 		j int
 	}
 	pq := make([]*Event, 3)
-	pq[0] = &Event{time: 2, priority: 1}
-	pq[1] = &Event{time: 1, priority: 2}
-	pq[2] = &Event{time: 2, priority: 2}
+	pq[0] = &Event{Time: 2, Priority: 1}
+	pq[1] = &Event{Time: 1, Priority: 2}
+	pq[2] = &Event{Time: 2, Priority: 2}
 	tests := []struct {
 		name string
 		pq   PriorityQueue
@@ -73,25 +73,25 @@ func TestEventList_push(t *testing.T) {
 	}
 	pq := make(PriorityQueue, 0)
 	elist1 := fields{events: pq}
-	event1 := &Event{time: 2, priority: 1}
+	event1 := &Event{Time: 2, Priority: 1}
 	args1 := args{event1}
-	wants1 := Event{time: 2, priority: 1}
+	wants1 := Event{Time: 2, Priority: 1}
 
 	// pq = make(PriorityQueue, 0)
 	eventlist := EventList{}
 	eventlist.push(event1)
 	elist2 := fields{eventlist.events}
-	event2 := &Event{time: 1, priority: 2}
+	event2 := &Event{Time: 1, Priority: 2}
 	args2 := args{event2}
-	wants2 := Event{time: 1, priority: 2}
+	wants2 := Event{Time: 1, Priority: 2}
 
 	eventlist = EventList{}
 	eventlist.push(event1)
 	eventlist.push(event2)
 	elist3 := fields{eventlist.events}
-	event3 := &Event{time: 2, priority: 2}
+	event3 := &Event{Time: 2, Priority: 2}
 	args3 := args{event3}
-	wants3 := Event{time: 1, priority: 2}
+	wants3 := Event{Time: 1, Priority: 2}
 
 	tests := []struct {
 		name   string
@@ -116,16 +116,16 @@ func TestEventList_push(t *testing.T) {
 	//test zb 35 33 42 10 14 19 27 44 26 31
 	fmt.Println("zb")
 	eventlist = EventList{}
-	eventlist.push(&Event{time: 35, priority: 0})
-	eventlist.push(&Event{time: 33, priority: 0})
-	eventlist.push(&Event{time: 42, priority: 0})
-	eventlist.push(&Event{time: 10, priority: 0})
-	eventlist.push(&Event{time: 14, priority: 0})
-	eventlist.push(&Event{time: 19, priority: 0})
-	eventlist.push(&Event{time: 27, priority: 0})
-	eventlist.push(&Event{time: 44, priority: 0})
-	eventlist.push(&Event{time: 26, priority: 0})
-	eventlist.push(&Event{time: 31, priority: 0})
+	eventlist.push(&Event{Time: 35, Priority: 0})
+	eventlist.push(&Event{Time: 33, Priority: 0})
+	eventlist.push(&Event{Time: 42, Priority: 0})
+	eventlist.push(&Event{Time: 10, Priority: 0})
+	eventlist.push(&Event{Time: 14, Priority: 0})
+	eventlist.push(&Event{Time: 19, Priority: 0})
+	eventlist.push(&Event{Time: 27, Priority: 0})
+	eventlist.push(&Event{Time: 44, Priority: 0})
+	eventlist.push(&Event{Time: 26, Priority: 0})
+	eventlist.push(&Event{Time: 31, Priority: 0})
 	for eventlist.size() > 0 {
 		fmt.Print("pop")
 		fmt.Println(eventlist.pop())
@@ -139,11 +139,11 @@ func TestEventList_pop(t *testing.T) {
 	type wants []*Event
 
 	eventlist := EventList{}
-	event1 := &Event{time: 2, priority: 1}
-	event2 := &Event{time: 1, priority: 1}
-	event3 := &Event{time: 15, priority: 1}
-	event4 := &Event{time: 3, priority: 1}
-	event5 := &Event{time: 12, priority: 1}
+	event1 := &Event{Time: 2, Priority: 1}
+	event2 := &Event{Time: 1, Priority: 1}
+	event3 := &Event{Time: 15, Priority: 1}
+	event4 := &Event{Time: 3, Priority: 1}
+	event5 := &Event{Time: 12, Priority: 1}
 	eventlist.push(event1)
 	eventlist.push(event2)
 	eventlist.push(event3)
@@ -159,11 +159,11 @@ func TestEventList_pop(t *testing.T) {
 	want1[4] = event3
 
 	eventlist = EventList{}
-	event1 = &Event{priority: 2, time: 1}
-	event2 = &Event{priority: 1, time: 1}
-	event3 = &Event{priority: 15, time: 1}
-	event4 = &Event{priority: 3, time: 1}
-	event5 = &Event{priority: 12, time: 1}
+	event1 = &Event{Priority: 2, Time: 1}
+	event2 = &Event{Priority: 1, Time: 1}
+	event3 = &Event{Priority: 15, Time: 1}
+	event4 = &Event{Priority: 3, Time: 1}
+	event5 = &Event{Priority: 12, Time: 1}
 	eventlist.push(event1)
 	eventlist.push(event2)
 	eventlist.push(event3)
@@ -179,11 +179,11 @@ func TestEventList_pop(t *testing.T) {
 	want2[4] = event3
 
 	eventlist = EventList{}
-	event1 = &Event{priority: 2, time: 1}
-	event2 = &Event{priority: 1, time: 2}
-	event3 = &Event{priority: 15, time: 1}
-	event4 = &Event{priority: 3, time: 1}
-	event5 = &Event{priority: 12, time: 1}
+	event1 = &Event{Priority: 2, Time: 1}
+	event2 = &Event{Priority: 1, Time: 2}
+	event3 = &Event{Priority: 15, Time: 1}
+	event4 = &Event{Priority: 3, Time: 1}
+	event5 = &Event{Priority: 12, Time: 1}
 	eventlist.push(event1)
 	eventlist.push(event2)
 	eventlist.push(event3)
@@ -270,11 +270,11 @@ func TestEventList_top(t *testing.T) {
 		events PriorityQueue
 	}
 	eventlist := EventList{}
-	event1 := &Event{priority: 2, time: 1}
-	event2 := &Event{priority: 1, time: 2}
-	event3 := &Event{priority: 15, time: 1}
-	event4 := &Event{priority: 3, time: 1}
-	event5 := &Event{priority: 12, time: 1}
+	event1 := &Event{Priority: 2, Time: 1}
+	event2 := &Event{Priority: 1, Time: 2}
+	event3 := &Event{Priority: 15, Time: 1}
+	event4 := &Event{Priority: 3, Time: 1}
+	event5 := &Event{Priority: 12, Time: 1}
 	eventlist.push(event1)
 	eventlist.push(event2)
 	eventlist.push(event3)
@@ -300,21 +300,18 @@ func TestEventList_top(t *testing.T) {
 }
 
 func TestEventList_merge(t *testing.T) {
-	type fields struct {
-		events PriorityQueue
-	}
 	eventlist := EventList{}
 	eventlist2 := EventList{}
 	eventlist3 := EventList{}
 	a := 474
 	b := 632
 	for i := 0; i < a; i++ {
-		event := &Event{priority: rand.Intn(100), time: uint64(rand.Intn(100))}
+		event := &Event{Priority: uint(rand.Intn(100)), Time: uint64(rand.Intn(100))}
 		eventlist.push(event)
 		eventlist3.push(event)
 	}
 	for i := 0; i < b; i++ {
-		event := &Event{priority: rand.Intn(100), time: uint64(rand.Intn(100))}
+		event := &Event{Priority: uint(rand.Intn(100)), Time: uint64(rand.Intn(100))}
 		eventlist2.push(event)
 		eventlist3.push(event)
 	}
@@ -323,11 +320,11 @@ func TestEventList_merge(t *testing.T) {
 	for eventlist.size() > 0 {
 		cc := eventlist.pop()
 		bb := eventlist3.pop()
-		if cc.time != bb.time || cc.priority != bb.priority {
-			fmt.Println(cc.time)
-			fmt.Println(bb.time)
-			fmt.Println(cc.priority)
-			fmt.Println(bb.priority)
+		if cc.Time != bb.Time || cc.Priority != bb.Priority {
+			fmt.Println(cc.Time)
+			fmt.Println(bb.Time)
+			fmt.Println(cc.Priority)
+			fmt.Println(bb.Priority)
 			fmt.Println(eventlist.size())
 			os.Exit(-1)
 		}

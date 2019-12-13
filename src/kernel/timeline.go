@@ -5,17 +5,16 @@ import (
 	"os"
 )
 
-//import "gotest.tools/assert"
-
 type Timeline struct {
+	Name          string // timeline name
 	time          uint64
 	events        EventList
 	entities      []Entity
 	endTime       uint64
 	nextStopTime  uint64
-	eventbuffer   EventBuffer
+	eventBuffer   EventBuffer
 	otherTimeline []*Timeline
-	look_head     uint64
+	LookAhead     uint64
 }
 
 func (t *Timeline) init() {
@@ -24,8 +23,8 @@ func (t *Timeline) init() {
 	}
 }
 
-func (t *Timeline) SetStopTime(stop_time uint64) {
-	t.endTime = stop_time
+func (t *Timeline) SetEndTime(endTime uint64) {
+	t.endTime = endTime
 }
 
 func (t *Timeline) setEntities(entities []Entity) {
@@ -37,29 +36,29 @@ func (t *Timeline) Now() uint64 {
 }
 
 func (t *Timeline) Schedule(event *Event) {
-	if t.time > event.time {
+	if t.time > event.Time {
 		fmt.Println("ERROR: cannot schedule an event in the past time")
 		os.Exit(3) //cannot schedule an event in the past time
 	}
-	if t == event.process.owner.timeline {
+	if t == event.Process.Owner.Timeline {
 		t.events.push(event)
 	} else {
-		t.eventbuffer.push(event)
+		t.eventBuffer.push(event)
 	}
 }
 
 // get events in the event buffer
 func (t *Timeline) getCrossTimelineEvents() {
 	for _, timeline := range t.otherTimeline {
-		if timeline.eventbuffer[t] == nil {
+		if timeline.eventBuffer[t] == nil {
 			continue
 		}
-		t.events.merge(*timeline.eventbuffer[t])
+		t.events.merge(*timeline.eventBuffer[t])
 	}
 }
 
 func (t *Timeline) minNextStopTime() uint64 {
-	return t.events.top().time + t.look_head
+	return t.events.top().Time + t.LookAhead
 }
 
 func (t *Timeline) updateNextStopTime(nextStop uint64) {
@@ -69,23 +68,24 @@ func (t *Timeline) updateNextStopTime(nextStop uint64) {
 
 func (t *Timeline) syncWindow() {
 
-	for t.events.top().time < t.nextStopTime {
+	for t.events.top().Time < t.nextStopTime {
 		event := t.events.pop()
-		t.time = event.time
-		event.process.run()
+		t.time = event.Time
+		event.Process.run()
 	}
 }
 
 func (t *Timeline) run(br *Barrier) {
 	for {
+		var flag int
 		t.getCrossTimelineEvents()
 		nextStop := t.minNextStopTime()
-		nextStop = br.waitEventExchange(nextStop, t.events.size())
-		if nextStop == uint64(-1) {
+		nextStop, flag = br.waitEventExchange(nextStop, t.events.size())
+		if flag == -1 {
 			break
 		}
 		t.updateNextStopTime(nextStop)
-		t.eventbuffer.clean(t)
+		t.eventBuffer.clean(t)
 		t.syncWindow()
 		br.waitExecution()
 	}

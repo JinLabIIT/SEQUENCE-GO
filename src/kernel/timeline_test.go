@@ -26,10 +26,10 @@ func initTimeline(n int, nextStop []uint64) []*Timeline {
 	return tl
 }
 
-func createEvent(timeline *Timeline, time uint64, priority uint64) *Event {
-	entity := Entity{timeline: timeline}
-	process := Process{owner: &entity}
-	event := &Event{time: time, priority: rand.Intn(40), process: &process}
+func createEvent(timeline *Timeline, time uint64, priority uint) *Event {
+	entity := Entity{Timeline: timeline}
+	process := Process{Owner: &entity}
+	event := &Event{Time: time, Priority: priority, Process: &process}
 	return event
 }
 
@@ -40,7 +40,7 @@ func TestTimeline_Schedule(t *testing.T) {
 	test_eventlist := EventList{}
 	n := 1000
 	for i := 0; i < n; i++ {
-		event := createEvent(&timeline, uint64(rand.Intn(10)+1), uint64(rand.Intn(10)))
+		event := createEvent(&timeline, uint64(rand.Intn(10)+1), uint(rand.Intn(10)))
 		timeline.Schedule(event)
 		test_eventlist.push(event)
 	}
@@ -67,10 +67,10 @@ func TestTimeline_getCrossTimelineEvents(t *testing.T) {
 		for j := 0; j < a; j++ {
 			random := rand.Intn(n)
 			rd[(i+1)*j] = random
-			event := createEvent(tl[random], uint64(rand.Intn(10)), uint64(rand.Intn(10)))
+			event := createEvent(tl[random], uint64(rand.Intn(10)), uint(rand.Intn(10)))
 			eventbuffer.push(event)
 		}
-		tl[i].eventbuffer = eventbuffer
+		tl[i].eventBuffer = eventbuffer
 		//fmt.Println(rd)
 	}
 
@@ -84,7 +84,7 @@ func TestTimeline_getCrossTimelineEvents(t *testing.T) {
 		for timeline.events.size() > 0 {
 			t.Run("getCrossTimelineEvents", func(t *testing.T) {
 				event := timeline.events.pop()
-				if !reflect.DeepEqual(event.process.owner.timeline, timeline) {
+				if !reflect.DeepEqual(event.Process.Owner.Timeline, timeline) {
 					t.Errorf("something wrong")
 				}
 			})
@@ -104,9 +104,9 @@ func TestTimeline_syncWindow(t *testing.T) {
 		timeline := tl[i]
 		for j := 0; j < a; j++ {
 			d1 := Dummmy{"alice"}
-			event := createEvent(timeline, uint64(rand.Intn(40))+timeline.time, uint64(rand.Intn(40)))
-			event.process.fnptr = d1.dummyFunction
-			event.process.message = Message{"info": "???"}
+			event := createEvent(timeline, uint64(rand.Intn(40))+timeline.time, uint(rand.Intn(40)))
+			event.Process.Fnptr = d1.dummyFunction
+			event.Process.Message = Message{"info": "???"}
 			timeline.Schedule(event)
 		}
 		timeline.Schedule(createEvent(timeline, 41, 0))

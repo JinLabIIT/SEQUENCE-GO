@@ -20,9 +20,9 @@ func TestEvenbuffer_push(t *testing.T) {
 	a := n * 10 //No. event
 	for i := 0; i < a; i++ {
 		random := rand.Intn(n)
-		entity := Entity{timeline: tl[random]}
-		process := Process{owner: &entity}
-		event := &Event{time: uint64(rand.Intn(10)), priority: rand.Intn(10), process: &process}
+		entity := Entity{Timeline: tl[random]}
+		process := Process{Owner: &entity}
+		event := &Event{Time: uint64(rand.Intn(10)), Priority: uint(rand.Intn(10)), Process: &process}
 		eventlist.push(event)
 		eventbuffer.push(event)
 	}
@@ -31,7 +31,7 @@ func TestEvenbuffer_push(t *testing.T) {
 		for eventbuffer[timeline].size() > 0 {
 			t.Run("push test", func(t *testing.T) {
 				event := eventbuffer[timeline].pop()
-				if !reflect.DeepEqual(event.process.owner.timeline, timeline) {
+				if !reflect.DeepEqual(event.Process.Owner.Timeline, timeline) {
 					t.Errorf("something wrong")
 				}
 			})

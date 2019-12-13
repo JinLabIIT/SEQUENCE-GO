@@ -3,7 +3,7 @@ package kernel
 type EventBuffer map[*Timeline]*EventList
 
 func (eb *EventBuffer) push(e *Event) {
-	own := e.process.owner.timeline
+	own := e.Process.Owner.Timeline
 	if (*eb)[own] == nil {
 		//fmt.Println("create new eventlist")
 		tmp_el := EventList{}

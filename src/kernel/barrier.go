@@ -22,7 +22,7 @@ func (b *Barrier) Init() {
 	b.next_stop = uint64(math.MaxInt64)
 }
 
-func (b *Barrier) waitEventExchange(_next_stop uint64, size int) uint64 {
+func (b *Barrier) waitEventExchange(_next_stop uint64, size int) (uint64, int) {
 	b.m.Lock()
 	b.c += 1
 	b.next_stop = min(_next_stop, b.next_stop)
@@ -36,9 +36,9 @@ func (b *Barrier) waitEventExchange(_next_stop uint64, size int) uint64 {
 	b.m.Unlock()
 	<-b.before
 	if b.maxSize == 0 {
-		return -1
+		return b.next_stop, -1
 	}
-	return b.next_stop
+	return b.next_stop, 0
 }
 func (b *Barrier) waitExecution() {
 	b.m.Lock()

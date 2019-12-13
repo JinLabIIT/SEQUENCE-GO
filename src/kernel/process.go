@@ -1,11 +1,11 @@
 package kernel
 
 type Process struct {
-	fnptr   func(message Message)
-	message Message
-	owner   *Entity
+	Fnptr   func(message Message)
+	Message Message
+	Owner   *Entity
 }
 
 func (p *Process) run() {
-	p.fnptr(p.message)
+	p.Fnptr(p.Message)
 }
