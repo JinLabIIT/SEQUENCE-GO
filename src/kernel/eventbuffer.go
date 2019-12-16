@@ -5,7 +5,6 @@ type EventBuffer map[*Timeline]*EventList
 func (eb *EventBuffer) push(e *Event) {
 	own := e.Process.Owner.Timeline
 	if (*eb)[own] == nil {
-		//fmt.Println("create new eventlist")
 		tmp_el := EventList{}
 		(*eb)[own] = &tmp_el
 	}
@@ -13,14 +12,9 @@ func (eb *EventBuffer) push(e *Event) {
 	evenlist.push(e)
 }
 
-func (eb *EventBuffer) cleant() {
-	for _, evenlist := range *eb {
-		*evenlist = EventList{}
-	}
-}
-
 func (eb *EventBuffer) clean(timeline *Timeline) {
-	(*eb)[timeline] = &EventList{}
+	//(*eb)[timeline] = &EventList{}
+	timeline.eventBuffer = make(EventBuffer)
 }
 
 func (eb *EventBuffer) size() int {

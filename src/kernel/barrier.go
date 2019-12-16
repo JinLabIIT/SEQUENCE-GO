@@ -28,18 +28,15 @@ func (b *Barrier) waitEventExchange(_next_stop uint64, size int) (uint64, int) {
 	b.next_stop = min(_next_stop, b.next_stop)
 	b.maxSize = max(b.maxSize, size)
 	if b.c == b.n {
-		// open 2nd gate
 		for i := 0; i < b.n; i++ {
 			b.before <- 1
 		}
 	}
 	b.m.Unlock()
 	<-b.before
-	if b.maxSize == 0 {
-		return b.next_stop, -1
-	}
-	return b.next_stop, 0
+	return b.next_stop, b.maxSize
 }
+
 func (b *Barrier) waitExecution() {
 	b.m.Lock()
 	b.c -= 1

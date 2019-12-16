@@ -5,7 +5,7 @@ type EntityInterface interface {
 }
 
 type Entity struct {
-	name     string
+	Name     string
 	Timeline *Timeline
 	EntityInterface
 }
