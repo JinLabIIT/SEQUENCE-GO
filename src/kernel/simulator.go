@@ -1,10 +1,9 @@
 package kernel
 
 import (
+	"fmt"
 	"sync"
 )
-
-//seed
 
 func Run(timelineList []*Timeline) {
 	br := Barrier{}
@@ -12,7 +11,6 @@ func Run(timelineList []*Timeline) {
 	br.Init()
 	for _, timeline := range timelineList {
 		timeline.otherTimeline = timelineList
-		timeline.init()
 	}
 	var wg sync.WaitGroup
 	for _, timeline := range timelineList {
@@ -20,4 +18,11 @@ func Run(timelineList []*Timeline) {
 		go timeline.run(&br, &wg)
 	}
 	wg.Wait()
+	timelineReport(timelineList)
+}
+
+func timelineReport(timelineList []*Timeline) {
+	for _, timeline := range timelineList {
+		fmt.Println(timeline.Name, " number of executed event:", timeline.executedEvent, " number of scheduled event:", timeline.scheduledEvent)
+	}
 }
