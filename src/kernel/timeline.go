@@ -8,10 +8,10 @@ import (
 )
 
 type Timeline struct {
-	Name          string // timeline name
-	time          uint64
-	events        EventList
-	entities      []Entity
+	Name   string // timeline name
+	time   uint64
+	events EventList
+	//entities      []Entity
 	endTime       uint64 // execution time: [0, endTime)
 	nextStopTime  uint64
 	eventBuffer   EventBuffer
@@ -19,22 +19,25 @@ type Timeline struct {
 	LookAhead     uint64
 }
 
+//func (t *Timeline) entityInit() {
+//	for _, entity := range t.entities {
+//		entity.init()
+//	}
+//}
+
 func (t *Timeline) init() {
-	for _, entity := range t.entities {
-		entity.init()
-	}
+	t.eventBuffer = make(EventBuffer)
+	t.events = EventList{}
+	//t.entities = make([]Entity,0)
 }
 
 func (t *Timeline) SetEndTime(endTime uint64) {
 	t.endTime = endTime
 }
 
-func (t *Timeline) SetEntities(entities Entity) {
-	if t.entities == nil {
-		t.entities = make([]Entity, 1)
-	}
-	t.entities = append(t.entities, entities)
-}
+//func (t *Timeline) AddEntities(entities Entity) {
+//	t.entities = append(t.entities, entities)
+//}
 
 func (t *Timeline) Now() uint64 {
 	return t.time
@@ -45,7 +48,7 @@ func (t *Timeline) Schedule(event *Event) {
 		fmt.Println("ERROR: cannot schedule an event in the past time")
 		os.Exit(3) //cannot schedule an event in the past time
 	}
-	if t == event.Process.Owner.Timeline {
+	if t == event.Process.Owner {
 		t.events.push(event)
 	} else {
 		t.eventBuffer.push(event)
@@ -87,6 +90,10 @@ func (t *Timeline) syncWindow() {
 	}
 }
 
+func (t *Timeline) cleanEvenbuffer() {
+	t.eventBuffer = make(EventBuffer)
+}
+
 func (t *Timeline) run(br *Barrier, wg *sync.WaitGroup) {
 	for {
 		var maxListSize int
@@ -97,7 +104,7 @@ func (t *Timeline) run(br *Barrier, wg *sync.WaitGroup) {
 			break
 		}
 		t.updateNextStopTime(nextStop)
-		t.eventBuffer.clean(t)
+		t.cleanEvenbuffer()
 		t.syncWindow()
 		if t.nextStopTime == t.endTime {
 			break

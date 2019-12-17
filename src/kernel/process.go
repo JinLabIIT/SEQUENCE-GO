@@ -3,7 +3,7 @@ package kernel
 type Process struct {
 	Fnptr   func(message Message)
 	Message Message
-	Owner   *Entity
+	Owner   *Timeline
 }
 
 func (p *Process) run() {

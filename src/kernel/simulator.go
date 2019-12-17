@@ -6,15 +6,13 @@ import (
 
 //seed
 
-func Run(timelineList []*Timeline, totalNodes int) {
+func Run(timelineList []*Timeline) {
 	br := Barrier{}
-	br.n = totalNodes
+	br.n = len(timelineList)
 	br.Init()
 	for _, timeline := range timelineList {
-		eventbuffer := make(EventBuffer)
 		timeline.otherTimeline = timelineList
-		timeline.eventBuffer = eventbuffer
-		timeline.events = EventList{}
+		timeline.init()
 	}
 	var wg sync.WaitGroup
 	for _, timeline := range timelineList {

@@ -19,7 +19,7 @@ func random_wait1(br *Barrier, wg *sync.WaitGroup, wants []int64, i int, nextSto
 }
 
 func random_wait2(br *Barrier, wg *sync.WaitGroup, wants []int64, i int) {
-	n := rand.Intn(1) //changed
+	n := rand.Intn(10) //changed
 	fmt.Printf("Sleeping %d seconds...\n", n)
 	time.Sleep(time.Duration(n) * time.Second)
 	br.waitExecution()

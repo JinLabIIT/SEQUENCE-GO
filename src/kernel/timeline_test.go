@@ -27,8 +27,7 @@ func initTimeline(n int, nextStop []uint64) []*Timeline {
 }
 
 func createEvent(timeline *Timeline, time uint64, priority uint) *Event {
-	entity := Entity{Timeline: timeline}
-	process := Process{Owner: &entity}
+	process := Process{Owner: timeline}
 	event := &Event{Time: time, Priority: priority, Process: &process}
 	return event
 }
@@ -71,20 +70,18 @@ func TestTimeline_getCrossTimelineEvents(t *testing.T) {
 			eventbuffer.push(event)
 		}
 		tl[i].eventBuffer = eventbuffer
-		//fmt.Println(rd)
 	}
 
 	//size := make([]int, n)
 	for i := 0; i < n; i++ {
 		tl[i].getCrossTimelineEvents()
-		//size[i] = tl[i].events.size()
 	}
 
 	for _, timeline := range tl {
 		for timeline.events.size() > 0 {
 			t.Run("getCrossTimelineEvents", func(t *testing.T) {
 				event := timeline.events.pop()
-				if !reflect.DeepEqual(event.Process.Owner.Timeline, timeline) {
+				if !reflect.DeepEqual(event.Process.Owner, timeline) {
 					t.Errorf("something wrong")
 				}
 			})
