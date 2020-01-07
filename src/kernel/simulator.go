@@ -23,6 +23,6 @@ func Run(timelineList []*Timeline) {
 
 func timelineReport(timelineList []*Timeline) {
 	for _, timeline := range timelineList {
-		fmt.Println(timeline.Name, " number of executed event:", timeline.executedEvent, " number of scheduled event:", timeline.scheduledEvent)
+		fmt.Println(timeline.Name, "number of executed event:", timeline.executedEvent, "number of scheduled event:", timeline.scheduledEvent)
 	}
 }
