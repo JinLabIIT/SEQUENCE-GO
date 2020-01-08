@@ -21,14 +21,14 @@ type Photon struct {
 	name             string           // inherit
 	timeline         *kernel.Timeline // inherit
 	wavelength       float64
-	location         QuantumChannel         //tmp
+	location         *QuantumChannel        //tmp
 	encodingType     map[string]interface{} // temp
 	quantumState     []complex128
-	entangledPhotons *Photon
+	entangledPhotons *Photon //future []*Photon
 }
 
-func (photon *Photon) entangle(photon2 Photon) {
-	// later
+func (photon *Photon) entangle(photon2 *Photon) {
+	photon.entangledPhotons = photon2
 }
 
 func (photon *Photon) randomNoise() {
@@ -70,14 +70,14 @@ func (photon *Photon) measure(basis *Basis) int {
 }
 
 type OpticalChannel struct {
-	name                 string          // inherit
-	timeline             kernel.Timeline // inherit
+	name                 string           // inherit
+	timeline             *kernel.Timeline // inherit
 	attenuation          float64
-	distance             float64
 	temperature          float64
 	polarizationFidelity float64
 	lightSpeed           float64
 	chromaticDispersion  float64 // tmp
+	distance             float64
 }
 
 // quantumchannel functions
@@ -85,21 +85,21 @@ type QuantumChannel struct {
 	OpticalChannel
 	name          string           // inherit
 	timeline      *kernel.Timeline // inherit
-	sender        string           //tmp
-	receiver      QSDetector       //tmp
+	sender        *LightSource
+	receiver      *QSDetector //tmp
 	depoCount     int
 	photonCounter int
 }
 
-func (qc *QuantumChannel) setSender(sender string) {
+func (qc *QuantumChannel) setSender(sender *LightSource) {
 	qc.setSender(sender)
 }
 
-func (qc *QuantumChannel) setReceiver(receiver QSDetector) {
+func (qc *QuantumChannel) setReceiver(receiver *QSDetector) {
 	qc.receiver = receiver
 }
 
-func (qc *QuantumChannel) get(photon Photon) {
+func (qc *QuantumChannel) get(photon *Photon) {
 	loss := qc.distance * qc.attenuation
 	chancePhotonKept := math.Pow(10, loss/-10)
 	// check if photon kept
@@ -128,6 +128,7 @@ func (qsd *QSDetector) turnOnDetector() {
 
 // classical channel
 type ClassicalChannel struct {
+	OpticalChannel
 	name     string           // inherit
 	timeline *kernel.Timeline // inherit
 	ends     []*Node          // tmp
@@ -170,16 +171,17 @@ type LightSource struct {
 	lineWidth      float64
 	meanPhotonNum  float64
 	encodingType   map[string]interface{} // tmp
-	directReceiver QuantumChannel         // tmp
+	directReceiver *QuantumChannel        // tmp
 	phaseError     float64                // tmp
 	photonCounter  int
 	poisson        *rng.PoissonGenerator
 }
 
-func (ls *LightSource) emit(stateList Basis) { // tmp []int
+// can be optimized later
+func (ls *LightSource) emit(stateList *Basis) { // tmp []int
 	time := ls.timeline.Now()
 	sep := uint64(math.Round(math.Pow10(12) / ls.frequency))
-	for i, state := range stateList {
+	for i, state := range *stateList {
 		numPhotons := ls.poisson.Poisson(1) //question mark
 		if numPhotons > 0 {
 			if rand.Float64() < ls.phaseError {
@@ -205,7 +207,7 @@ func (ls *LightSource) _emit(message kernel.Message) {
 	for i := 0; i < numPhotons; i++ {
 		wavelength := ls.lineWidth*rand.NormFloat64() + ls.wavelength
 		newPhoton := Photon{timeline: ls.timeline, wavelength: wavelength, location: ls.directReceiver, encodingType: ls.encodingType, quantumState: state}
-		ls.directReceiver.get(newPhoton)
+		ls.directReceiver.get(&newPhoton)
 		ls.photonCounter += 1
 		time += sep
 		for index < len(stateList) {
@@ -226,7 +228,7 @@ func (ls *LightSource) _emit(message kernel.Message) {
 	}
 }
 
-func (ls *LightSource) assignReceiver(receiver QuantumChannel) { //??
+func (ls *LightSource) assignReceiver(receiver *QuantumChannel) {
 	ls.directReceiver = receiver
 }
 
@@ -234,7 +236,7 @@ type QSDetector struct {
 	name           string           // inherit
 	timeline       *kernel.Timeline // inherit
 	encodingType   map[string]interface{}
-	detectors      []*Detector // tmp
+	detectors      []Detector // tmp
 	splitter       *BeamSplitter
 	_switch        *Switch
 	interferometer *Interferometer
@@ -245,14 +247,12 @@ func (qsd *QSDetector) _init() {
 		(qsd.encodingType["name"] == "timeBin" && len(qsd.detectors) != 3) {
 		os.Exit(-1)
 	}
-	var detector *Detector
-	for _, d := range qsd.detectors {
-		if !reflect.DeepEqual(d, Detector{}) { // question mark
-			detector = &Detector{timeline: qsd.timeline}
+	for i := range qsd.detectors {
+		if !reflect.DeepEqual(qsd.detectors[i], Detector{}) { // question mark
+			qsd.detectors[i].timeline = qsd.timeline
 		} else {
-			detector = &Detector{}
+			qsd.detectors[i] = Detector{}
 		}
-		qsd.detectors = append(qsd.detectors, detector)
 	}
 	if qsd.encodingType["name"] == "polarization" {
 		// need to do
@@ -280,7 +280,7 @@ func (qsd *QSDetector) init() {
 }
 
 func (qsd *QSDetector) get(message kernel.Message) {
-	photon := message["photon"].(Photon)
+	photon := message["photon"].(*Photon)
 	if qsd.encodingType["name"] == "polarization" {
 		detector := qsd.splitter.get(photon)
 		if detector == 0 || detector == 1 {
@@ -373,14 +373,14 @@ func (d *Detector) addDarkCount(message kernel.Message) {
 
 type BeamSplitter struct {
 	timeline  *kernel.Timeline // inherit
-	basis     Basis
+	basis     *Basis
 	fidelity  float64
 	startTime uint64
 	frequency float64
 	basisList []*Basis
 }
 
-func (bs *BeamSplitter) get(photon Photon) int {
+func (bs *BeamSplitter) get(photon *Photon) int {
 	if rand.Float64() < bs.fidelity {
 		index := int(float64(bs.timeline.Now()-bs.startTime) * bs.frequency * math.Pow10(-12))
 		if 0 <= index && index < len(bs.basisList) {
@@ -401,10 +401,10 @@ type Interferometer struct {
 	timeline       *kernel.Timeline // inherit
 	pathDifference int              // tmp
 	phaseError     float64          // tmp
-	detectors      []*Detector      // tmp
+	detectors      []Detector       // tmp
 }
 
-func (inf *Interferometer) get(photon Photon) {
+func (inf *Interferometer) get(photon *Photon) {
 	detectorNum := rand.Intn(2)
 	quantumState := photon.quantumState
 	time := 0
@@ -457,14 +457,14 @@ func (inf *Interferometer) get(photon Photon) {
 
 type Switch struct {
 	timeline  *kernel.Timeline
-	receiver  []interface{} // tmp
+	receiver  []interface{} // Interferometer Detector
 	startTime uint64
 	frequency float64
 	stateList []int // tmp
 	typeList  []int //0: Interferometer 1: Detector ???
 }
 
-func (_switch *Switch) addReceiver(entity interface{}) {
+func (_switch *Switch) addReceiver(entity *interface{}) {
 	_switch.receiver = append(_switch.receiver, entity)
 }
 
@@ -472,7 +472,7 @@ func (_switch *Switch) setState(state int) {
 	_switch.stateList = []int{state}
 }
 
-func (_switch *Switch) get(photon Photon) {
+func (_switch *Switch) get(photon *Photon) {
 	index := int(float64(_switch.timeline.Now()-_switch.startTime) * _switch.frequency * math.Pow10(-12))
 	if index < 0 || index >= len(_switch.stateList) {
 		index = 0
@@ -494,8 +494,8 @@ func (_switch *Switch) get(photon Photon) {
 }
 
 type Node struct {
-	name       string          // inherit
-	timeline   kernel.Timeline // inherit
+	name       string           // inherit
+	timeline   *kernel.Timeline // inherit
 	components map[string]interface{}
 	count      []int
 	message    kernel.Message //temporary storage for message received through classical channel
@@ -512,7 +512,7 @@ func (node *Node) sendQubits(basisList, bitList []int, sourceName string) {
 		state := (*basis)[bit]
 		stateList[len(stateList)-i-1] = state
 	}
-	node.components[sourceName].(LightSource).emit(stateList)
+	node.components[sourceName].(LightSource).emit(&stateList)
 }
 
 func (node *Node) sendPhotons(state complex128, num int, sourceName string) { // no need in BB84, complete later

@@ -10,6 +10,7 @@ import (
 )
 
 type BB84 struct {
+	name           string
 	detectorName   string
 	sourceName     string
 	working        bool
@@ -25,7 +26,7 @@ type BB84 struct {
 	key            int64
 	keyBits        []int
 	node           *Node
-	parent         *BB84
+	parent         *Parent
 	another        *BB84
 	keyLength      []int
 	keysLeftList   []int
@@ -46,7 +47,7 @@ func (bb84 *BB84) assignNode(node *Node) {
 	bb84.quantumDelay = int(math.Round(qchannel.distance / qchannel.lightSpeed))
 }
 
-func (bb84 *BB84) addParent(parent *BB84) {
+func (bb84 *BB84) addParent(parent *Parent) {
 	bb84.parent = parent
 }
 
@@ -183,7 +184,7 @@ func (bb84 *BB84) receivedMessage() {
 					}
 					bb84.another.setKey()
 					if bb84.another.parent != nil {
-						bb84.parent.another.getKeyFromBB84(bb84.key)
+						bb84.another.parent.getKeyFromBB84(bb84.key)
 					}
 					// for metrics
 					if bb84.latency == 0 {
@@ -207,11 +208,6 @@ func (bb84 *BB84) receivedMessage() {
 			}
 		}
 	}
-}
-
-func (bb84 *BB84) getKeyFromBB84(key int64) {
-	// need to print
-	bb84.key = key
 }
 
 func (bb84 *BB84) generateKey(length, keyNum int, runTime uint64) {
@@ -298,4 +294,131 @@ func toString(a []int) string {
 	}
 	result := strings.Join(valuesText, " ")
 	return result
+}
+
+// for testing BB84 Protocol
+type Parent struct {
+	keySize int
+	role    int
+	child   *BB84
+	key     int64
+}
+
+func (parent *Parent) run(message kernel.Message) {
+	parent.child.generateKey(parent.keySize, 10, math.MaxInt64)
+}
+
+func (parent *Parent) getKeyFromBB84(key int64) {
+	fmt.Println("need to do")
+	parent.key = key
+}
+
+func test() {
+	fmt.Println("Polarization:")
+	tl := kernel.Timeline{Name: "alice", LookAhead: math.MaxInt64}
+	tl.SetEndTime(uint64(math.Pow10(11))) //stop time is 100 ms
+	op := OpticalChannel{lightSpeed: 3 * math.Pow10(-4), polarizationFidelity: 0.99, attenuation: 0.0002, distance: math.Pow10(3)}
+	qc := QuantumChannel{name: "qc", timeline: &tl, OpticalChannel: op}
+	cc := ClassicalChannel{name: "cc", timeline: &tl, OpticalChannel: op}
+	// Alice
+	ls := LightSource{name: "Alice.lightSource", timeline: &tl, frequency: 80 * math.Pow10(6), meanPhotonNum: 0.1, directReceiver: &qc}
+	components := map[string]interface{}{"lightsource": ls, "cchannel": cc, "qchannel": qc}
+	alice := Node{name: "alice", timeline: &tl, components: components}
+	qc.setSender(&ls)
+	cc.addEnd(&alice)
+
+	//Bob
+	detectors := []Detector{{efficiency: 0.8, darkCount: 1, timeResolution: 10}, {efficiency: 0.8, darkCount: 1, timeResolution: 10}}
+	qsd := QSDetector{name: "bob.qsdetector", timeline: &tl, detectors: detectors}
+	qsd._init()
+	components = map[string]interface{}{"detector": qsd, "cchannel": cc, "qchannel": qc}
+	bob := Node{name: "bob", timeline: &tl, components: components}
+	qc.setReceiver(&qsd)
+	cc.addEnd(&bob)
+
+	// init() components elements
+	// need to do
+
+	//BB84
+	bba := BB84{name: "bba", timeline: &tl, role: 0} //alice.role = 0
+	bbb := BB84{name: "bbb", timeline: &tl, role: 1} //bob.role = 1
+	bba.assignNode(&alice)
+	bbb.assignNode(&bob)
+	bba.another = &bbb
+	bbb.another = &bba
+	alice.protocol = bba
+	bob.protocol = bbb
+
+	//Parent
+	pa := Parent{keySize: 512}
+	pb := Parent{keySize: 512}
+	pa.child = &bba
+	pb.child = &bbb
+	bba.addParent(&pa)
+	bbb.addParent(&pb)
+
+	message := kernel.Message{}
+	process := kernel.Process{Fnptr: pa.run, Message: message, Owner: &tl}
+	event := kernel.Event{Time: 0, Priority: 0, Process: &process}
+	tl.Schedule(&event)
+	kernel.Run([]*kernel.Timeline{&tl})
+
+	fmt.Println("latency (s): " + fmt.Sprintf("%f", bba.latency))
+	//fmt.Println("average throughput (Mb/s): "+fmt.Sprintf("%f",math.Pow10(-6) * sum(bba.throughputs) / len(bba.throughputs)))
+	fmt.Println("bit error rates:")
+
+	// TIME BIN TESTING
+	fmt.Println("Time Bin:")
+	tl = kernel.Timeline{Name: "alice", LookAhead: math.MaxInt64}
+	tl.SetEndTime(uint64(math.Pow10(11))) //stop time is 100 ms
+	op = OpticalChannel{lightSpeed: 3 * math.Pow10(-4), polarizationFidelity: 0.99, distance: math.Pow10(3)}
+	qc = QuantumChannel{name: "qc", timeline: &tl, OpticalChannel: op}
+	cc = ClassicalChannel{name: "cc", timeline: &tl, OpticalChannel: op}
+	// Alice
+	ls = LightSource{name: "Alice.lightSource", timeline: &tl, frequency: 80 * math.Pow10(6), meanPhotonNum: 0.1, directReceiver: &qc, encodingType: timeBin()}
+	components = map[string]interface{}{"asource": ls, "cchannel": cc, "qchannel": qc}
+	alice = Node{name: "alice", timeline: &tl, components: components}
+	qc.setSender(&ls)
+	cc.addEnd(&alice)
+
+	//Bob
+	detectors = []Detector{{efficiency: 0.8, darkCount: 1, timeResolution: 10}, {efficiency: 0.8, darkCount: 1, timeResolution: 10}, {efficiency: 0.8, darkCount: 1, timeResolution: 10}}
+	interferometer := Interferometer{pathDifference: timeBin()["binSeparation"].(int)}
+	qsd = QSDetector{name: "bob.qsdetector", timeline: &tl, detectors: detectors, encodingType: timeBin(), interferometer: &interferometer}
+	qsd._init()
+	components = map[string]interface{}{"bdetector": qsd, "cchannel": cc, "qchannel": qc}
+	bob = Node{name: "bob", timeline: &tl, components: components}
+	qc.setReceiver(&qsd)
+	cc.addEnd(&bob)
+
+	// init() components elements
+	// need to do
+
+	//BB84
+	bba = BB84{name: "bba", timeline: &tl, role: 0, sourceName: "asource"}   //alice.role = 0
+	bbb = BB84{name: "bbb", timeline: &tl, role: 1, sourceName: "bdetector"} //bob.role = 1
+	bba.assignNode(&alice)
+	bbb.assignNode(&bob)
+	bba.another = &bbb
+	bbb.another = &bba
+	alice.protocol = bba
+	bob.protocol = bbb
+
+	//Parent
+	pa = Parent{keySize: 512}
+	pb = Parent{keySize: 512}
+	pa.child = &bba
+	pb.child = &bbb
+	bba.addParent(&pa)
+	bbb.addParent(&pb)
+
+	message = kernel.Message{}
+	process = kernel.Process{Fnptr: pa.run, Message: message, Owner: &tl}
+	event = kernel.Event{Time: 0, Priority: 0, Process: &process}
+	tl.Schedule(&event)
+	kernel.Run([]*kernel.Timeline{&tl})
+
+	fmt.Println("latency (s): " + fmt.Sprintf("%f", bba.latency))
+	//fmt.Println("average throughput (Mb/s): "+fmt.Sprintf("%f",math.Pow10(-6) * sum(bba.throughputs) / len(bba.throughputs)))
+	fmt.Println("bit error rates:")
 }

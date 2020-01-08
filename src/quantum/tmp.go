@@ -2,6 +2,6 @@ package quantum
 
 import "testing"
 
-func TestBB84(t *testing.T) {
-
+func TestMain(t *testing.T) {
+	test()
 }
