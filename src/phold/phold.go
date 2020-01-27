@@ -15,27 +15,27 @@ type Node struct {
 	timeline   *kernel.Timeline
 	totalNodes int
 	otherNode  []*Node
-	poisson    rng.PoissonGenerator
+	exp    rng.ExpGenerator
 }
 
-func (node *Node) nodeInit(timeline *kernel.Timeline, totalNodes int, name string, poisson rng.PoissonGenerator) {
+func (node *Node) nodeInit(timeline *kernel.Timeline, totalNodes int, name string, exp rng.ExpGenerator) {
 	node.timeline = timeline
 	node.totalNodes = totalNodes
 	node.name = name
-	node.poisson = poisson
+	node.exp = exp
 }
 
 func initEvent(node *Node) {
 	message := kernel.Message{"receiver": node}
 	process := kernel.Process{Fnptr: node.send, Message: message, Owner: node.timeline}
-	delay := uint64(node.poisson.Poisson(1))
+	delay := uint64(node.exp.Exp(1) * 100)
 	event := kernel.Event{Time: delay, Process: &process, Priority: 0}
 	node.timeline.Schedule(&event)
 }
 
 func createEvent(node *Node, message kernel.Message, priority uint) kernel.Event {
 	process := kernel.Process{Fnptr: node.send, Message: message, Owner: node.timeline}
-	delay := uint64(node.poisson.Poisson(1))
+	delay := uint64(node.exp.Exp(1) * 100)
 	event := kernel.Event{Time: node.timeline.LookAhead + node.timeline.Now() + delay, Process: &process, Priority: priority}
 	return event
 }
@@ -55,15 +55,15 @@ func main() {
 	seed := int64(123456)
 	totalThreads, _ := strconv.Atoi(os.Args[1])
 	totalNodes, _ := strconv.Atoi(os.Args[2]) // totalThreads <= totalNodes
-	endTime := uint64(500)
-	initJobs := 5000000
+	endTime := uint64(5000)
+	initJobs := 800000
 	lookAhead := uint64(100)
 	phold(initJobs, totalThreads, totalNodes, endTime, lookAhead, seed)
 }
 
 func phold(initJobs, totalThreads, totalNodes int, endTime, lookAhead uint64, seed int64) {
 	tl := make([]*kernel.Timeline, totalThreads)
-	poisson := rng.NewPoissonGenerator(seed)
+	exp := rng.NewExpGenerator(seed)
 	rand.Seed(uint64(seed))
 	for i := 0; i < totalThreads; i++ {
 		tl[i] = &kernel.Timeline{}
@@ -76,7 +76,7 @@ func phold(initJobs, totalThreads, totalNodes int, endTime, lookAhead uint64, se
 	for i := 0; i < totalNodes; i++ {
 		nodeList[i] = &Node{}
 		nodeList[i].otherNode = nodeList
-		nodeList[i].nodeInit(tl[i%totalThreads], totalNodes, "Node"+strconv.Itoa(i), *poisson)
+		nodeList[i].nodeInit(tl[i%totalThreads], totalNodes, "Node"+strconv.Itoa(i), *exp)
 	}
 	for i := 0; i < initJobs; i++ {
 		target := rand.Intn(totalNodes)
