@@ -28,36 +28,36 @@ func (eventlist *EventList) pop() *Event {
 	return heap.Pop(&eventlist.events).(*Event)
 }
 
-func (EventList *EventList) merge(new EventList) {
-	a := EventList.events.Len()
-	b := new.events.Len()
+func (eventList *EventList) merge(another EventList) {
+	a := eventList.events.Len()
+	b := another.events.Len()
 	n := a + b
-	for i := 0; i < new.events.Len(); i++ {
-		EventList.events = append(EventList.events, new.events[i])
+	for i := 0; i < another.events.Len(); i++ {
+		eventList.events = append(eventList.events, another.events[i])
 	}
 	for i := int(n/2) - 1; i >= 0; i-- {
-		EventList.minHeapify(n, i)
+		eventList.minHeapify(n, i)
 	}
 }
 
-func (EventList *EventList) minHeapify(n, i int) {
+func (eventList *EventList) minHeapify(n, i int) {
 	if i >= n {
 		return
 	}
 	l := i*2 + 1
 	r := i*2 + 2
 	var min int
-	if l < n && EventList.events.Less(l, i) {
+	if l < n && eventList.events.Less(l, i) {
 		min = l
 	} else {
 		min = i
 	}
-	if r < n && EventList.events.Less(r, min) {
+	if r < n && eventList.events.Less(r, min) {
 		min = r
 	}
 	if min != i {
-		EventList.events.Swap(min, i)
-		EventList.minHeapify(n, min)
+		eventList.events.Swap(min, i)
+		eventList.minHeapify(n, min)
 	}
 }
 
