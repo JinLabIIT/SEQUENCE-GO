@@ -17,33 +17,33 @@ type Thread struct {
 	name string
 }
 
-func test(totalThreads, totalJobs int){
-	n := totalJobs/totalThreads
+func test(totalThreads, totalJobs int) {
+	n := totalJobs / totalThreads
 	var wg sync.WaitGroup
-	for i := 0; i < totalThreads; i++{
+	for i := 0; i < totalThreads; i++ {
 		wg.Add(1)
-		thread := Thread{"thread"+strconv.Itoa(i)}
-		go thread.addArray(n,&wg)
+		thread := Thread{"thread" + strconv.Itoa(i)}
+		go thread.addArray(n, &wg)
 	}
 	wg.Wait()
 }
 
-func (thread *Thread) addArray(n int,wg *sync.WaitGroup){
+func (thread *Thread) addArray(n int, wg *sync.WaitGroup) {
 	var i int
-	list := make([]int,10000)
-	for i < n{
-		for j := 0 ; j < 10000; j++{
+	list := make([]int, 10000)
+	for i < n {
+		for j := 0; j < 10000; j++ {
 			list = append(list, i)
 		}
-		list = make([]int,10000)
+		list = make([]int, 10000)
 		i++
 	}
 	wg.Done()
 }
 
-func (thread *Thread) addOne(n int,wg *sync.WaitGroup){
+func (thread *Thread) addOne(n int, wg *sync.WaitGroup) {
 	var i int
-	for i < n{
+	for i < n {
 		i = i + 1
 	}
 	wg.Done()
@@ -52,7 +52,7 @@ func (thread *Thread) addOne(n int,wg *sync.WaitGroup){
 var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to `file`")
 var memprofile = flag.String("memprofile", "", "write memory profile to `file`")
 
-func main(){
+func main() {
 	flag.Parse()
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
@@ -65,12 +65,12 @@ func main(){
 		}
 		defer pprof.StopCPUProfile()
 	}
-	totalThreads,_ := strconv.Atoi(os.Args[1])
-	totalJobs,_ := strconv.Atoi(os.Args[2])
+	totalThreads, _ := strconv.Atoi(os.Args[1])
+	totalJobs, _ := strconv.Atoi(os.Args[2])
 	past := time.Now()
-	test(totalThreads,totalJobs)
+	test(totalThreads, totalJobs)
 	now := time.Now()
-	fmt.Println("totalThreads is:",totalThreads,"Total consumption time is:",now.Sub(past))
+	fmt.Println("totalThreads is:", totalThreads, "Total consumption time is:", now.Sub(past))
 	if *memprofile != "" {
 		f, err := os.Create(*memprofile)
 		if err != nil {

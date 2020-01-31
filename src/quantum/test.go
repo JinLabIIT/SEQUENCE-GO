@@ -1,229 +1,187 @@
-// Copyright 2009 The GoMatrix Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
-//target:gomatrix.googlecode.com/hg/matrix
-
-//Linear algebra.
 package quantum
 
-//The MatrixRO interface defines matrix operations that do not change the
-//underlying data, such as information requests or the creation of transforms
-/*
-Read-only matrix types (at the moment, PivotMatrix).
-*/
+import (
+	rng "github.com/leesper/go_rng"
+	"golang.org/x/exp/errors/fmt"
+	"kernel"
+	"math"
+	"math/rand"
+	"sync"
+)
 
-type MatrixRO interface {
-
-	//The number of rows in this matrix.
-	Rows() int
-	//The number of columns in this matrix.
-	Cols() int
-
-	//The number of elements in this matrix.
-	NumElements() int
-	//The size pair, (Rows(), Cols())
-	GetSize() (int, int)
-
-	//The element in the ith row and jth column.
-	Get(i, j int) complex128
-
-	//Plus(MatrixRO) (Matrix, error)
-	//Minus(MatrixRO) (Matrix, error)
-	Times(MatrixRO) Matrix
-
-	DenseMatrix() *DenseMatrix
-	//SparseMatrix() *SparseMatrix
+type ls struct {
+	name           string           // inherit
+	timeline       *kernel.Timeline // inherit
+	frequency      float64
+	wavelength     float64
+	lineWidth      float64
+	meanPhotonNum  float64
+	encodingType   map[string]interface{}
+	directReceiver *qc
+	phaseError     float64
+	photonCounter  int
+	poisson        *rng.PoissonGenerator
+	bs             *Basis
+	tran           int
+	lookahead      uint64
 }
 
-type Matrix interface {
-	MatrixRO
-
-	//Set the element at the ith row and jth column to v.
-	Set(i int, j int, v complex128)
-
-	Add(MatrixRO) error
-	Subtract(MatrixRO) error
-	Scale(complex128)
-}
-
-type matrix struct {
-	rows int
-	cols int
-}
-
-func (A *matrix) Nil() bool { return A == nil }
-
-func (A *matrix) Rows() int { return A.rows }
-
-func (A *matrix) Cols() int { return A.cols }
-
-func (A *matrix) NumElements() int { return A.rows * A.cols }
-
-func (A *matrix) GetSize() (rows, cols int) {
-	rows = A.rows
-	cols = A.cols
-	return
-}
-
-func Kronecker(A, B MatrixRO) (C *DenseMatrix) {
-	ars, acs := A.Rows(), A.Cols()
-	brs, bcs := B.Rows(), B.Cols()
-	C = Zeros(ars*brs, acs*bcs)
-	for i := 0; i < ars; i++ {
-		for j := 0; j < acs; j++ {
-			Cij := C.GetMatrix(i*brs, j*bcs, brs, bcs)
-			Cij.SetMatrix(0, 0, Scaled(B, A.Get(i, j)))
-		}
+func (l *ls) _init() {
+	if l.wavelength == 0 {
+		l.wavelength = 1550
 	}
-	return
-}
-
-func Scaled(A MatrixRO, f complex128) (B *DenseMatrix) {
-	B = MakeDenseCopy(A)
-	B.Scale(f)
-	return
-}
-
-func MakeDenseCopy(A MatrixRO) *DenseMatrix {
-	B := Zeros(A.Rows(), A.Cols())
-	for i := 0; i < B.rows; i++ {
-		for j := 0; j < B.cols; j++ {
-			B.Set(i, j, A.Get(i, j))
-		}
-	}
-	return B
-}
-
-type DenseMatrix struct {
-	matrix
-	// flattened matrix data. elements[i*step+j] is row i, col j
-	elements []complex128
-	// actual offset between rows
-	step int
-}
-
-/*
-Returns an array of slices referencing the matrix data. Changes to
-the slices effect changes to the matrix.
-*/
-func (A *DenseMatrix) Arrays() [][]complex128 {
-	a := make([][]complex128, A.rows)
-	for i := 0; i < A.rows; i++ {
-		a[i] = A.elements[i*A.step : i*A.step+A.cols]
-	}
-	return a
-}
-
-/*
-Returns the contents of this matrix stored into a flat array (row-major).
-*/
-func (A *DenseMatrix) Array() []complex128 {
-	if A.step == A.rows {
-		return A.elements[0 : A.rows*A.cols]
-	}
-	a := make([]complex128, A.rows*A.cols)
-	for i := 0; i < A.rows; i++ {
-		for j := 0; j < A.cols; j++ {
-			a[i*A.cols+j] = A.elements[i*A.step+j]
-		}
-	}
-	return a
-}
-
-/*
-Get the element in the ith row and jth column.
-*/
-func (A *DenseMatrix) Get(i int, j int) (v complex128) {
-	v = A.elements[i*A.step : i*A.step+A.cols][j]
-	return v
-}
-
-/*
-Set the element in the ith row and jth column to v.
-*/
-func (A *DenseMatrix) Set(i int, j int, v complex128) {
-	A.elements[i*A.step : i*A.step+A.cols][j] = v
-}
-
-func Zeros(rows, cols int) *DenseMatrix {
-	A := new(DenseMatrix)
-	A.elements = make([]complex128, rows*cols)
-	A.rows = rows
-	A.cols = cols
-	A.step = cols
-	return A
-}
-
-func (A *DenseMatrix) GetMatrix(i, j, rows, cols int) *DenseMatrix {
-	B := new(DenseMatrix)
-	B.elements = A.elements[i*A.step+j : i*A.step+j+(rows-1)*A.step+cols]
-	B.rows = rows
-	B.cols = cols
-	B.step = A.step
-	return B
-}
-
-func (A *DenseMatrix) SetMatrix(i, j int, B *DenseMatrix) {
-	for r := 0; r < B.rows; r++ {
-		for c := 0; c < B.cols; c++ {
-			A.Set(i+r, j+c, B.Get(r, c))
-		}
+	if l.encodingType == nil {
+		l.encodingType = polarization()
 	}
 }
 
-func (A *DenseMatrix) Scale(f complex128) {
-	for i := 0; i < A.rows; i++ {
-		index := i * A.step
-		for j := 0; j < A.cols; j++ {
-			A.elements[index] *= f
-			index++
-		}
-	}
+func (l *ls) transmit(message kernel.Message) {
+	l.tran++
+	time := l.timeline.Now()
+	msg := kernel.Message{"stateList": l.bs}
+	process1 := kernel.Process{Fnptr: l.emit, Message: msg, Owner: l.timeline}
+	event1 := kernel.Event{Time: time + uint64(math.Pow10(2)), Process: &process1, Priority: 0}
+	l.timeline.Schedule(&event1)
+
+	process := kernel.Process{Fnptr: l.transmit, Message: kernel.Message{}, Owner: l.timeline}
+	event := kernel.Event{Time: time + uint64(math.Pow10(2)), Process: &process, Priority: 0}
+	l.timeline.Schedule(&event)
 }
 
-func (A *DenseMatrix) Transpose() *DenseMatrix {
-	B := Zeros(A.Cols(), A.Rows())
-	for i := 0; i < A.Rows(); i++ {
-		for j := 0; j < A.Cols(); j++ {
-			B.Set(j, i, A.Get(i, j))
-		}
-	}
-	return B
-}
-
-func (A *DenseMatrix) Times(B MatrixRO) *DenseMatrix {
-	C := Zeros(A.rows, B.Cols())
-
-	for i := 0; i < A.rows; i++ {
-		for j := 0; j < B.Cols(); j++ {
-			sum := complex128(0)
-			for k := 0; k < A.cols; k++ {
-				sum += A.elements[i*A.step+k] * B.Get(k, j)
+func (l *ls) emit(message kernel.Message) {
+	//fmt.Println("emit message")
+	time := l.timeline.Now()
+	stateList := message["stateList"].(*Basis)
+	//sep := uint64(math.Round(math.Pow10(12) / l.frequency))
+	sep := uint64(0)
+	for i, state := range *stateList {
+		numPhotons := l.poisson.Poisson(l.meanPhotonNum) //question mark
+		if numPhotons > 0 {
+			if rand.Float64() < l.phaseError {
+				multiply([]float64{1.0, -1.0}, state)
 			}
-			C.elements[i*C.step+j] = sum
+			message := kernel.Message{"stateList": stateList, "numPhotons": numPhotons, "state": state, "index": i + 1}
+			process := kernel.Process{Fnptr: l._emit, Message: message, Owner: l.timeline}
+			event := kernel.Event{Time: time, Process: &process, Priority: 0}
+			l.timeline.Schedule(&event)
+			break
 		}
+		time += sep
 	}
-	return C
 }
 
-func MakeDenseMatrix(elements []complex128, rows, cols int) *DenseMatrix {
-	A := new(DenseMatrix)
-	A.rows = rows
-	A.cols = cols
-	A.step = cols
-	A.elements = elements
-	return A
+func (l *ls) _emit(message kernel.Message) {
+	//fmt.Println("_emit")
+	stateList := message["stateList"].(*Basis)
+	numPhotons := message["numPhotons"].(int64)
+	state := message["state"].([]complex128)
+	index := message["index"].(int)
+	time := l.timeline.Now()
+	//sep := uint64(math.Round(math.Pow10(12) / l.frequency))
+	sep := uint64(0)
+	for i := 0; i < int(numPhotons); i++ {
+		//wavelength := l.lineWidth*rand.NormFloat64() + l.wavelength
+		//newPhoton := Photon{timeline: l.timeline, wavelength: wavelength, location: l.directReceiver, encodingType: l.encodingType, quantumState: state}
+		//newPhoton._init()
+		newPhoton := rand.Float64()
+		message := kernel.Message{"photon": newPhoton}
+		process := kernel.Process{Fnptr: l.directReceiver.get, Message: message, Owner: l.directReceiver.timeline}
+		event := kernel.Event{Time: time + l.lookahead, Process: &process, Priority: 0}
+		l.timeline.Schedule(&event)
+		l.photonCounter += 1
+	}
+	time += sep
+	for index < len(*stateList) {
+		numPhotons := l.poisson.Poisson(l.meanPhotonNum)
+		if numPhotons > 0 {
+			state = (*stateList)[index]
+			if rand.Float64() < l.phaseError {
+				multiply([]float64{1.0, -1.0}, state)
+			}
+			message := kernel.Message{"stateList": stateList, "numPhotons": numPhotons, "state": state, "index": index + 1}
+			process := kernel.Process{Fnptr: l._emit, Message: message, Owner: l.timeline}
+			event := kernel.Event{Time: time, Process: &process, Priority: 0}
+			l.timeline.Schedule(&event)
+			break
+		}
+		index += 1
+		time += sep
+	}
 }
 
-func MakeDenseMatrixStacked(data [][]complex128) *DenseMatrix {
-	rows := len(data)
-	cols := len(data[0])
-	elements := make([]complex128, rows*cols)
-	for i := 0; i < rows; i++ {
-		for j := 0; j < cols; j++ {
-			elements[i*cols+j] = data[i][j]
-		}
+type qc struct {
+	OpticalChannel
+	name          string           // inherit
+	timeline      *kernel.Timeline // inherit
+	sender        *LightSource
+	receiver      *qsd //tmp
+	depoCount     int
+	photonCounter int
+}
+
+func (q *qc) get(message kernel.Message) {
+	photon := message["photon"].(float64)
+	//loss := q.distance * q.attenuation
+	//chancePhotonKept := math.Pow(10, loss/-10)
+	// check if photon kept
+	//if rand.Float64() < chancePhotonKept { // numpy.random.random_sample()
+	q.photonCounter += 1
+
+	futureTime := q.timeline.Now() + uint64(math.Round(q.distance/q.lightSpeed))
+	msg := kernel.Message{"photon": photon}
+	process := kernel.Process{Fnptr: q.receiver.get, Message: msg, Owner: q.timeline}
+	event := kernel.Event{Time: futureTime, Process: &process, Priority: 0}
+	q.timeline.Schedule(&event)
+	//}
+}
+
+type qsd struct {
+	name           string           // inherit
+	timeline       *kernel.Timeline // inherit
+	encodingType   map[string]interface{}
+	detectors      []*Detector // tmp
+	splitter       *BeamSplitter
+	_switch        *Switch
+	interferometer *Interferometer
+}
+
+func (qsd *qsd) get(message kernel.Message) {
+	photon := message["photon"].(float64)
+
+	if photon > 0.5 {
+		//fmt.Println("1")
+	} else {
+		//fmt.Println("0")
 	}
-	return MakeDenseMatrix(elements, rows, cols)
+}
+
+func MakeStateList() *Basis {
+	numPulses := 10000
+	basisList := choice([]int{0, 1}, numPulses)
+	bitList := choice([]int{0, 1}, numPulses)
+	encodingType := polarization()
+	stateList := make(Basis, numPulses)
+	for i, bit := range bitList {
+		basis := (encodingType["bases"].([][][]complex128))[basisList[i]]
+		state := basis[bit]
+		stateList[i] = state
+	}
+	return &stateList
+}
+
+func addFunction(n int, wg *sync.WaitGroup) {
+	result := 0
+	for i := 0; i < n; i++ {
+		result = result + 1
+	}
+	wg.Done()
+}
+
+func createRandom(n int, wg *sync.WaitGroup) {
+	uniform := rng.NewExpGenerator(1)
+	for i := 0; i < n; i++ {
+		uniform.Exp(1)
+	}
+	fmt.Println(n)
+	wg.Done()
 }
