@@ -13,3 +13,7 @@
 
 # IDE configuration files
 .idea
+
+# bin and pkg folders
+/bin
+/pkg
