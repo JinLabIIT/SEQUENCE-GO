@@ -68,7 +68,7 @@ func Test(t *testing.T) {
 
 func Test2(t *testing.T) {
 	fmt.Println("start test2")
-	test2()
+	//test2()
 	fmt.Println("test2 finished")
 }
 

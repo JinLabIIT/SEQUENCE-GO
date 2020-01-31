@@ -62,6 +62,16 @@ func (t *Timeline) getCrossTimelineEvents() {
 	}
 }
 
+func (t *Timeline) helpGetCrossTimelineEvents(buffer EventBuffer) {
+	for _, timeline := range t.otherTimeline {
+		if timeline.eventBuffer[t] == nil || timeline.eventBuffer[t].size() == 0 {
+			continue
+		}
+		t.scheduledEvent += uint64(timeline.eventBuffer[t].size())
+		t.events.merge(*timeline.eventBuffer[t])
+	}
+}
+
 func (t *Timeline) minNextStopTime() uint64 {
 	if t.events.size() == 0 { //Eventlist is empty in this timeline
 		return uint64(math.MaxInt64)
@@ -79,10 +89,10 @@ func (t *Timeline) updateNextStopTime(nextStop uint64) {
 func (t *Timeline) syncWindow() {
 	for t.events.size() != 0 && t.events.top().Time < t.nextStopTime {
 		event := t.events.pop()
-        if event.Time < t.time{
-            err_msg := fmt.Sprint("running an earlier event now: ", t.time, "event: ", event.Time)
-            panic(err_msg)
-        }
+		if event.Time < t.time {
+			err_msg := fmt.Sprint("running an earlier event now: ", t.time, "event: ", event.Time)
+			panic(err_msg)
+		}
 		t.time = event.Time
 		t.executedEvent += 1
 		event.Process.run()

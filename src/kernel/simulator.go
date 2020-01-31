@@ -11,6 +11,7 @@ func Run(timelineList []*Timeline) {
 	br.Init()
 	for _, timeline := range timelineList {
 		timeline.otherTimeline = timelineList
+		//timeline.events = EventList{make([]*Event,0,2000)}
 	}
 	var wg sync.WaitGroup
 	for _, timeline := range timelineList {

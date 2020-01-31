@@ -327,33 +327,6 @@ func (bb84 *BB84) setKey() {
 	//bb84.key = sliceToInt(keyBits,2)//convert from binary list to int
 }
 
-// help function
-func choice(array []int, n int) []int {
-	result := make([]int, n)
-	for i := 0; i < n; i++ {
-		result[i] = array[rand.Intn(len(array))]
-	}
-	return result
-}
-
-func sliceToInt(slice []int, index int) uint64 { // convert from binary list to int
-	var results string
-	for i := range slice {
-		results += strconv.Itoa(slice[i])
-	}
-	val, _ := strconv.ParseUint(results, index, 64)
-	return val
-}
-
-func toString(a []int) string {
-	valuesText := make([]string, len(a))
-	for i := 0; i < len(a); i++ {
-		valuesText[i] = strconv.Itoa(a[i])
-	}
-	result := strings.Join(valuesText, " ")
-	return result
-}
-
 // for testing BB84 Protocol
 type Parent struct {
 	keySize int
@@ -383,7 +356,7 @@ func test() {
 	fmt.Println("Polarization:")
 	poisson := rng.NewPoissonGenerator(seed)
 	tl := kernel.Timeline{Name: "alice", LookAhead: math.MaxInt64}
-	tl.SetEndTime(uint64(math.Pow10(50))) //stop time is 100 ms
+	tl.SetEndTime(uint64(math.Pow10(11))) //stop time is 100 ms
 	op := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, distance: 10 * math.Pow10(3)}
 	op._init()
 	qc := QuantumChannel{name: "qc", timeline: &tl, OpticalChannel: op}
