@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/leesper/go_rng"
-	"golang.org/x/exp/rand"
 	"kernel"
 	"os"
 	"strconv"
@@ -15,34 +14,36 @@ type Node struct {
 	timeline   *kernel.Timeline
 	totalNodes int
 	otherNode  []*Node
-	poisson    rng.PoissonGenerator
+	exp        *rng.ExpGenerator
+    ung        *rng.UniformGenerator
 }
 
-func (node *Node) nodeInit(timeline *kernel.Timeline, totalNodes int, name string, poisson rng.PoissonGenerator) {
+func (node *Node) nodeInit(timeline *kernel.Timeline, totalNodes int, name string, seed int64) {
 	node.timeline = timeline
 	node.totalNodes = totalNodes
 	node.name = name
-	node.poisson = poisson
+	node.exp = rng.NewExpGenerator(seed)
+    node.ung = rng.NewUniformGenerator(seed)
 }
 
 func initEvent(node *Node) {
 	message := kernel.Message{"receiver": node}
 	process := kernel.Process{Fnptr: node.send, Message: message, Owner: node.timeline}
-	delay := uint64(node.poisson.Poisson(1))
+    delay := uint64(node.exp.Exp(1) * 100)
 	event := kernel.Event{Time: delay, Process: &process, Priority: 0}
 	node.timeline.Schedule(&event)
 }
 
 func createEvent(node *Node, message kernel.Message, priority uint) kernel.Event {
 	process := kernel.Process{Fnptr: node.send, Message: message, Owner: node.timeline}
-	delay := uint64(node.poisson.Poisson(1))
+    delay := uint64(node.exp.Exp(1) * 100)
 	event := kernel.Event{Time: node.timeline.LookAhead + node.timeline.Now() + delay, Process: &process, Priority: priority}
 	return event
 }
 
 func (node *Node) send(message kernel.Message) {
 	receiver := message["receiver"].(*Node)
-	target := rand.Intn(node.totalNodes)
+    target := node.ung.Int32Range(0, int32(node.totalNodes))
 	newMessage := kernel.Message{"receiver": node.otherNode[target]}
 	event := createEvent(receiver, newMessage, 0)
 	node.timeline.Schedule(&event)
@@ -51,20 +52,19 @@ func (node *Node) send(message kernel.Message) {
 func main() {
 	//phold experience
 	//arguments: totalThreads totalNodes
-	fmt.Println("phold experience")
+	fmt.Println("phold simulation")
 	seed := int64(123456)
 	totalThreads, _ := strconv.Atoi(os.Args[1])
 	totalNodes, _ := strconv.Atoi(os.Args[2]) // totalThreads <= totalNodes
-	endTime := uint64(500)
-	initJobs := 5000000
+	endTime := uint64(5000)
+	initJobs := 800000
 	lookAhead := uint64(100)
 	phold(initJobs, totalThreads, totalNodes, endTime, lookAhead, seed)
 }
 
 func phold(initJobs, totalThreads, totalNodes int, endTime, lookAhead uint64, seed int64) {
 	tl := make([]*kernel.Timeline, totalThreads)
-	poisson := rng.NewPoissonGenerator(seed)
-	rand.Seed(uint64(seed))
+    ung := rng.NewUniformGenerator(seed)
 	for i := 0; i < totalThreads; i++ {
 		tl[i] = &kernel.Timeline{}
 		tl[i].Init(lookAhead, endTime)
@@ -76,10 +76,10 @@ func phold(initJobs, totalThreads, totalNodes int, endTime, lookAhead uint64, se
 	for i := 0; i < totalNodes; i++ {
 		nodeList[i] = &Node{}
 		nodeList[i].otherNode = nodeList
-		nodeList[i].nodeInit(tl[i%totalThreads], totalNodes, "Node"+strconv.Itoa(i), *poisson)
+		nodeList[i].nodeInit(tl[i%totalThreads], totalNodes, "Node"+strconv.Itoa(i), seed)
 	}
 	for i := 0; i < initJobs; i++ {
-		target := rand.Intn(totalNodes)
+        target := ung.Int32Range(0, int32(totalNodes))
 		initEvent(nodeList[target])
 	}
 	past := time.Now()

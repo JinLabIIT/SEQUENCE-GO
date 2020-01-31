@@ -22,7 +22,8 @@ type Timeline struct {
 
 func (t *Timeline) Init(lookahead, endTime uint64) {
 	t.eventBuffer = make(EventBuffer)
-	t.events = EventList{}
+	t.events = EventList{make([]*Event, 0, 0)}
+	// t.events = EventList{make([]*Event, 0, 100000)}
 	t.executedEvent = 0
 	t.scheduledEvent = 0
 	t.LookAhead = lookahead
@@ -77,10 +78,11 @@ func (t *Timeline) updateNextStopTime(nextStop uint64) {
 
 func (t *Timeline) syncWindow() {
 	for t.events.size() != 0 && t.events.top().Time < t.nextStopTime {
-		if t.events.size() == 0 {
-			break
-		}
 		event := t.events.pop()
+        if event.Time < t.time{
+            err_msg := fmt.Sprint("running an earlier event now: ", t.time, "event: ", event.Time)
+            panic(err_msg)
+        }
 		t.time = event.Time
 		t.executedEvent += 1
 		event.Process.run()
@@ -88,7 +90,7 @@ func (t *Timeline) syncWindow() {
 }
 
 func (t *Timeline) cleanEvenbuffer() {
-	t.eventBuffer = make(EventBuffer)
+	t.eventBuffer.clean()
 }
 
 func (t *Timeline) run(br *Barrier, wg *sync.WaitGroup) {
