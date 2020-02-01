@@ -58,6 +58,7 @@ func (bb84 *BB84) assignNode(node *Node) {
 	qchannel := node.components["qchannel"].(*QuantumChannel)
 	bb84.classicalDelay = cchannel.delay
 	bb84.quantumDelay = int(math.Round(qchannel.distance / qchannel.lightSpeed))
+	node.protocols = append(node.protocols, bb84)
 }
 
 func (bb84 *BB84) addParent(parent *Parent) {
@@ -137,6 +138,9 @@ func (bb84 *BB84) endPhotonPulse(message kernel.Message) {
 }
 
 func (bb84 *BB84) receivedMessage(message kernel.Message) {
+	if bb84.another.node.name != message["src"] {
+		return
+	}
 	if bb84.working && bb84.timeline.Now() < bb84.endRunTimes[0] {
 		message0 := strings.Split(message["message"].(string), " ")
 		if message0[0] == "beginPhotonPulse" {
@@ -392,8 +396,6 @@ func test() {
 	bbb.assignNode(&bob)
 	bba.another = &bbb
 	bbb.another = &bba
-	alice.protocol = &bba
-	bob.protocol = &bbb
 
 	//Parent
 	pa := Parent{keySize: 512, role: "alice"}
@@ -458,8 +460,6 @@ func test2() {
 	bbb.assignNode(&bob)
 	bba.another = &bbb
 	bbb.another = &bba
-	alice.protocol = &bba
-	bob.protocol = &bbb
 
 	//Parent
 	pa := Parent{keySize: 512}
