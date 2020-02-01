@@ -52,12 +52,14 @@ func (bb84 *BB84) _init() {
 	}
 }
 
-func (bb84 *BB84) assignNode(node *Node) {
+func (bb84 *BB84) assignNode(node *Node, cdelay float64, qdelay int) {
 	bb84.node = node
-	cchannel := node.components["cchannel"].(*ClassicalChannel)
-	qchannel := node.components["qchannel"].(*QuantumChannel)
-	bb84.classicalDelay = cchannel.delay
-	bb84.quantumDelay = int(math.Round(qchannel.distance / qchannel.lightSpeed))
+	//cchannel := node.components["cchannel"].(*ClassicalChannel)
+	//qchannel := node.components["qchannel"].(*QuantumChannel)
+	//bb84.classicalDelay = cchannel.delay
+	//bb84.quantumDelay = int(math.Round(qchannel.distance / qchannel.lightSpeed))
+	bb84.quantumDelay = qdelay
+	bb84.classicalDelay = cdelay
 	node.protocols = append(node.protocols, bb84)
 }
 
@@ -77,7 +79,7 @@ func (bb84 *BB84) setBases() {
 }
 
 func (bb84 *BB84) beginPhotonPulse(message kernel.Message) {
-	fmt.Println("beginPhotonPulse " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
+	// fmt.Println("beginPhotonPulse " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
 	if bb84.working && bb84.timeline.Now() < bb84.endRunTimes[0] {
 		// generate basis/bit list
 		numPulses := int(math.Round(bb84.lightTime * bb84.qubitFrequency))
@@ -114,7 +116,7 @@ func (bb84 *BB84) beginPhotonPulse(message kernel.Message) {
 }
 
 func (bb84 *BB84) endPhotonPulse(message kernel.Message) {
-	fmt.Println("endPhotonPulse " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
+	// fmt.Println("endPhotonPulse " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
 	if bb84.working && bb84.timeline.Now() < bb84.endRunTimes[0] {
 		// get bits
 		bits := bb84.node.getBits(bb84.lightTime, bb84.startTime, bb84.qubitFrequency, bb84.detectorName)
@@ -144,7 +146,7 @@ func (bb84 *BB84) receivedMessage(message kernel.Message) {
 	if bb84.working && bb84.timeline.Now() < bb84.endRunTimes[0] {
 		message0 := strings.Split(message["message"].(string), " ")
 		if message0[0] == "beginPhotonPulse" {
-			fmt.Println("beginPhotonPulse in received message " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
+			// fmt.Println("beginPhotonPulse in received message " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
 			bb84.qubitFrequency, _ = strconv.ParseFloat(message0[1], 64)
 			bb84.lightTime, _ = strconv.ParseFloat(message0[2], 64)
 			bb84.startTime, _ = strconv.ParseUint(message0[3], 10, 64)
@@ -163,12 +165,12 @@ func (bb84 *BB84) receivedMessage(message kernel.Message) {
 			event1 := kernel.Event{Time: bb84.startTime, Process: &process1, Priority: 0}
 			bb84.timeline.Schedule(&event1)
 		} else if message0[0] == "receivedQubits" {
-			fmt.Println("receivedQubits " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
+			// fmt.Println("receivedQubits " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
 			bases := bb84.basisLists[0]
 			bb84.basisLists = bb84.basisLists[1:]
 			bb84.node.sendMessage("basisList "+toString(bases), bb84.another.node.name) // need to do
 		} else if message0[0] == "basisList" {
-			fmt.Println("basislist " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
+			// fmt.Println("basislist " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
 			basisListAlice := make([]int, 0, len(message0[1:]))
 			for _, basis := range message0[1:] {
 				value, _ := strconv.Atoi(basis)
@@ -195,7 +197,7 @@ func (bb84 *BB84) receivedMessage(message kernel.Message) {
 			}
 			bb84.node.sendMessage("matchingIndices "+toString(indices), bb84.another.node.name)
 		} else if message0[0] == "matchingIndices" {
-			fmt.Println("matchingIndices " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
+			// fmt.Println("matchingIndices " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
 			// need to do
 			indices := make([]int, 0, len(message0[1:]))
 			if len(message0) != 1 { // no matching indices
@@ -212,7 +214,7 @@ func (bb84 *BB84) receivedMessage(message kernel.Message) {
 			if len(bb84.keyBits) >= bb84.keyLength[0] {
 				throughput := float64(bb84.keyLength[0]) * math.Pow10(12) / float64(bb84.timeline.Now()-bb84.lastKeyTime)
 				for len(bb84.keyBits) >= bb84.keyLength[0] && bb84.keysLeftList[0] > 0 {
-					fmt.Println("got key")
+					fmt.Println(bb84.node.name, "got key")
 					bb84.setKey()
 					if bb84.parent != nil {
 						bb84.parent.getKeyFromBB84(bb84.key)
@@ -392,8 +394,8 @@ func test() {
 	bbb := BB84{name: "bbb", timeline: &tl, role: 1} //bob.role = 1
 	bba._init()
 	bbb._init()
-	bba.assignNode(&alice)
-	bbb.assignNode(&bob)
+	bba.assignNode(&alice, cc.delay, int(qc.lightSpeed/qc.distance))
+	bbb.assignNode(&bob, cc.delay, int(qc.lightSpeed/qc.distance))
 	bba.another = &bbb
 	bbb.another = &bba
 
@@ -456,8 +458,8 @@ func test2() {
 	//BB84
 	bba := BB84{name: "bba", timeline: &tl, role: 0, sourceName: "asource"}     //alice.role = 0
 	bbb := BB84{name: "bbb", timeline: &tl, role: 1, detectorName: "bdetector"} //bob.role = 1
-	bba.assignNode(&alice)
-	bbb.assignNode(&bob)
+	bba.assignNode(&alice, cc.delay, int(qc.lightSpeed/qc.distance))
+	bbb.assignNode(&bob, cc.delay, int(qc.lightSpeed/qc.distance))
 	bba.another = &bbb
 	bbb.another = &bba
 

@@ -72,6 +72,10 @@ func Test2(t *testing.T) {
 	fmt.Println("test2 finished")
 }
 
+func Test3(t *testing.T) {
+	main(64)
+}
+
 /*func Test123(t *testing.T){
 	t1()
 }*/
