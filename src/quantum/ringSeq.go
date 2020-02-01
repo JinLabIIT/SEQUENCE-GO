@@ -26,6 +26,8 @@ func main() {
 	for i := 0; i < totalNodes; i++ {
 		node_name := fmt.Sprint("node%d", i)
 		node := Node{name: node_name, timeline: &tl}
+		node.cchannels = make(map[string]*ClassicalChannel)
+		node.components = make(map[string]interface{})
 		nodes[i] = &node
 	}
 
@@ -43,19 +45,16 @@ func main() {
 		op := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, distance: 10 * math.Pow10(3), lightSpeed: 2 * math.Pow10(-4)}
 		qc_name := fmt.Sprint("qc_%s_%s", nodes[i].name, nodes[(i+1)%totalNodes].name)
 		qc := QuantumChannel{name: qc_name, timeline: &tl, OpticalChannel: op}
-		//TODO: assign quantum channel to node[i] and node[(i+1)%totalNodes]
-		qc = qc
 		ls_name := fmt.Sprint("%s.lightsource", nodes[i].name)
 		ls := LightSource{name: ls_name, timeline: &tl, frequency: 80 * math.Pow10(6), meanPhotonNum: 0.1, directReceiver: &qc, poisson: poisson, wavelength: 1550, encodingType: polarization()}
 		qc.setSender(&ls)
-		//TODO: assign lightsource to node[i]
 		detectors := []*Detector{{efficiency: 0.8, darkCount: 0, timeResolution: 10, countRate: 50 * math.Pow10(6)}, {efficiency: 0.8, darkCount: 0, timeResolution: 10, countRate: 50 * math.Pow10(6)}}
 		qsd_name := fmt.Sprint("%s.qsdetector", nodes[(i+1)%totalNodes].name)
 		qsd := QSDetector{name: qsd_name, timeline: &tl, detectors: detectors}
 		qc.setReceiver(&qsd)
+		nodes[i].components["lightSource"] = ls
 		qsd.init()
-		//TODO: assign QSD to node[(i+1) % totalNodes]
-
+		nodes[(i+1)%totalNodes].components["detector"] = qsd
 	}
 
 	// create BB84
