@@ -29,19 +29,28 @@ func (cc *ClassicalChannel) addEnd(node *Node) {
 	cc.ends = append(cc.ends, node)
 }
 
+func (cc *ClassicalChannel) setEnds(nodeList []*Node) {
+	for _, node := range nodeList {
+		cc.addEnd(node)
+	}
+	for _, node := range nodeList {
+		node.assignCChannel(cc)
+	}
+}
+
 func (cc *ClassicalChannel) transmit(msg string, source *Node) {
 	if !exists(cc.ends, source) {
 		panic("no endpoint " + source.name)
 	}
-	/*	var receiver *Node
-		for _, e := range cc.ends { // ?
-			if e != source {
-				receiver = e
-			}
-		}*/
+	var receiver *Node
+	for _, e := range cc.ends {
+		if e != source {
+			receiver = e
+		}
+	}
 	message := kernel.Message{"message": msg}
 	futureTime := cc.timeline.Now() + uint64(math.Round(cc.delay))
-	process := kernel.Process{Fnptr: source.receiveMessage, Message: message, Owner: cc.timeline}
+	process := kernel.Process{Fnptr: receiver.receiveMessage, Message: message, Owner: cc.timeline}
 	event := kernel.Event{Time: futureTime, Process: &process, Priority: 0}
 	cc.timeline.Schedule(&event)
 }
