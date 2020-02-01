@@ -21,25 +21,25 @@ func main() {
 
 	// create nodes
 	totalNodes, _ := strconv.Atoi(os.Args[1])
-	nodes := make([]*Node,0)
+	nodes := make([]*Node, totalNodes)
 
-	for i:= 0; i < totalNodes; i++ {
+	for i := 0; i < totalNodes; i++ {
 		node_name := fmt.Sprint("node%d", i)
-		node := Node{name: node_name, timeline:&tl}
-		nodes = append(nodes, &node)
+		node := Node{name: node_name, timeline: &tl}
+		nodes[i] = &node
 	}
 
 	// create classical channels
-	for i:= 0; i < totalNodes; i++ {
+
+	for i := 0; i < totalNodes; i++ {
 		op := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, distance: 10 * math.Pow10(3), lightSpeed: 2 * math.Pow10(-4)}
 		cc_name := fmt.Sprint("cc_%s_%s", nodes[i].name, nodes[(i+1)%totalNodes].name)
-		cc := ClassicalChannel{name: cc_name, timeline: &tl, OpticalChannel: op, delay: float64(1 * math.Pow10(9))}
-		//TODO: create classical channel between node[i] and node[(i+1)%totalNodes]
-		cc = cc
+		cc := &ClassicalChannel{name: cc_name, timeline: &tl, OpticalChannel: op, delay: float64(1 * math.Pow10(9))}
+		cc.setEnds([]*Node{nodes[i], nodes[(i+1)%totalNodes]})
 	}
 
 	// create light source, detector and quantum channels
-	for i:= 0; i < totalNodes; i++ {
+	for i := 0; i < totalNodes; i++ {
 		op := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, distance: 10 * math.Pow10(3), lightSpeed: 2 * math.Pow10(-4)}
 		qc_name := fmt.Sprint("qc_%s_%s", nodes[i].name, nodes[(i+1)%totalNodes].name)
 		qc := QuantumChannel{name: qc_name, timeline: &tl, OpticalChannel: op}
@@ -60,13 +60,13 @@ func main() {
 
 	// create BB84
 	parent_protocols := make([]*Parent, 0)
-	for i:=0; i< totalNodes; i++ {
+	for i := 0; i < totalNodes; i++ {
 		bba := BB84{name: "bba", timeline: &tl, role: 0} //alice.role = 0
 		bbb := BB84{name: "bbb", timeline: &tl, role: 1} //bob.role = 1
 		bba._init()
 		bbb._init()
 		bba.assignNode(nodes[i])
-		bbb.assignNode(nodes[(i+1) % totalNodes])
+		bbb.assignNode(nodes[(i+1)%totalNodes])
 		bba.another = &bbb
 		bbb.another = &bba
 		// TODO: assign protocols to nodes
@@ -80,7 +80,7 @@ func main() {
 	}
 
 	// schedule initial events
-	for i:=0; i < totalNodes; i++{
+	for i := 0; i < totalNodes; i++ {
 		message := kernel.Message{}
 		process := kernel.Process{Fnptr: parent_protocols[i].run, Message: message, Owner: &tl}
 		event := kernel.Event{Time: 0, Priority: 0, Process: &process}
