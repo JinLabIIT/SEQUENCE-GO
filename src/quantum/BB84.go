@@ -132,7 +132,7 @@ func (bb84 *BB84) endPhotonPulse(message kernel.Message) {
 			event := kernel.Event{Time: time, Process: &process, Priority: 0}
 			bb84.timeline.Schedule(&event)
 		}
-		bb84.node.sendMessage("receivedQubits", "cchannel")
+		bb84.node.sendMessage("receivedQubits", bb84.another.node.name)
 	}
 }
 
@@ -162,7 +162,7 @@ func (bb84 *BB84) receivedMessage() {
 			fmt.Println("receivedQubits " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
 			bases := bb84.basisLists[0]
 			bb84.basisLists = bb84.basisLists[1:]
-			bb84.node.sendMessage("basisList "+toString(bases), "cchannel") // need to do
+			bb84.node.sendMessage("basisList "+toString(bases), bb84.another.node.name) // need to do
 		} else if message0[0] == "basisList" {
 			fmt.Println("basislist " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
 			basisListAlice := make([]int, 0, len(message0[1:]))
@@ -189,7 +189,7 @@ func (bb84 *BB84) receivedMessage() {
 					c++
 				}
 			}
-			bb84.node.sendMessage("matchingIndices "+toString(indices), "cchannel")
+			bb84.node.sendMessage("matchingIndices "+toString(indices), bb84.another.node.name)
 		} else if message0[0] == "matchingIndices" {
 			fmt.Println("matchingIndices " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
 			// need to do
@@ -301,7 +301,7 @@ func (bb84 *BB84) startProtocol(message kernel.Message) {
 		bb84.startTime = (bb84.timeline.Now()) + uint64(math.Round(bb84.classicalDelay))
 		bb84.node.sendMessage("beginPhotonPulse "+fmt.Sprint(bb84.qubitFrequency)+
 			" "+fmt.Sprint(bb84.lightTime)+" "+fmt.Sprint(bb84.startTime)+" "+
-			fmt.Sprint(lightSource.wavelength), "cchannel")
+			fmt.Sprint(lightSource.wavelength), bb84.another.node.name)
 
 		message := kernel.Message{}
 		process := kernel.Process{Fnptr: bb84.beginPhotonPulse, Message: message, Owner: bb84.timeline}
@@ -365,7 +365,6 @@ func test() {
 	components := map[string]interface{}{"lightSource": &ls, "cchannel": &cc, "qchannel": &qc}
 	alice := Node{name: "alice", timeline: &tl, components: components}
 	qc.setSender(&ls)
-	cc.addEnd(&alice)
 
 	//Bob
 	detectors := []*Detector{{efficiency: 0.8, darkCount: 0, timeResolution: 10, countRate: 50 * math.Pow10(6)}, {efficiency: 0.8, darkCount: 0, timeResolution: 10, countRate: 50 * math.Pow10(6)}}
@@ -374,11 +373,12 @@ func test() {
 	qsd._init()
 	components = map[string]interface{}{"detector": &qsd, "cchannel": &cc, "qchannel": &qc}
 	bob := Node{name: "bob", timeline: &tl, components: components}
-	alice.receiver = &bob
-	bob.receiver = &alice
+	alice.cchannels = make(map[string]*ClassicalChannel)
+	bob.cchannels = make(map[string]*ClassicalChannel)
 	qc.setReceiver(&qsd)
-	cc.addEnd(&bob)
-
+	cc.setEnds([]*Node{&alice, &bob})
+	//alice.cchannels = map[string]*ClassicalChannel{"cchannel": &cc}
+	//bob.cchannels = map[string]*ClassicalChannel{"cchannel": &cc}
 	// init() components elements
 	qsd.init()
 	// need to do
