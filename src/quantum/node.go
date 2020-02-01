@@ -10,8 +10,7 @@ type Node struct {
 	timeline   *kernel.Timeline // inherit
 	components map[string]interface{}
 	count      []int
-	message    kernel.Message //temporary storage for message received through classical channel
-	protocol   interface{}    //
+	protocol   interface{} //
 	splitter   *BeamSplitter
 	receiver   *Node
 	cchannels  map[string]*ClassicalChannel
@@ -141,6 +140,5 @@ func (node *Node) sendMessage(msg string, dst string) {
 }
 
 func (node *Node) receiveMessage(message kernel.Message) {
-	node.message = message
-	node.protocol.(*BB84).receivedMessage()
+	node.protocol.(*BB84).receivedMessage(message)
 }

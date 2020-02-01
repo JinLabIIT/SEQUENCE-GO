@@ -136,9 +136,9 @@ func (bb84 *BB84) endPhotonPulse(message kernel.Message) {
 	}
 }
 
-func (bb84 *BB84) receivedMessage() {
+func (bb84 *BB84) receivedMessage(message kernel.Message) {
 	if bb84.working && bb84.timeline.Now() < bb84.endRunTimes[0] {
-		message0 := strings.Split(bb84.node.message["message"].(string), " ")
+		message0 := strings.Split(message["message"].(string), " ")
 		if message0[0] == "beginPhotonPulse" {
 			fmt.Println("beginPhotonPulse in received message " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
 			bb84.qubitFrequency, _ = strconv.ParseFloat(message0[1], 64)

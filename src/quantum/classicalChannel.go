@@ -47,7 +47,7 @@ func (cc *ClassicalChannel) transmit(msg string, source *Node) {
 			receiver = e
 		}
 	}
-	message := kernel.Message{"message": msg}
+	message := kernel.Message{"src": source.name, "message": msg}
 	futureTime := cc.timeline.Now() + uint64(math.Round(cc.delay))
 	process := kernel.Process{Fnptr: receiver.receiveMessage, Message: message, Owner: cc.timeline}
 	event := kernel.Event{Time: futureTime, Process: &process, Priority: 0}
