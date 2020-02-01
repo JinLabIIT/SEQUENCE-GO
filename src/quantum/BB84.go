@@ -357,25 +357,19 @@ func test() {
 	poisson := rng.NewPoissonGenerator(seed)
 	tl := kernel.Timeline{Name: "alice", LookAhead: math.MaxInt64}
 	tl.SetEndTime(uint64(math.Pow10(11))) //stop time is 100 ms
-	op := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, distance: 10 * math.Pow10(3)}
-	op._init()
+	op := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, distance: 10 * math.Pow10(3), lightSpeed: 2 * math.Pow10(-4)}
 	qc := QuantumChannel{name: "qc", timeline: &tl, OpticalChannel: op}
-	qc._init()
-	cc := ClassicalChannel{name: "cc", timeline: &tl, OpticalChannel: op}
-	cc._init()
+	cc := ClassicalChannel{name: "cc", timeline: &tl, OpticalChannel: op, delay: float64(1 * math.Pow10(9))}
 	// Alice
-	ls := LightSource{name: "Alice.lightSource", timeline: &tl, frequency: 80 * math.Pow10(6), meanPhotonNum: 0.1, directReceiver: &qc, poisson: poisson}
-	ls._init()
+	ls := LightSource{name: "Alice.lightSource", timeline: &tl, frequency: 80 * math.Pow10(6), meanPhotonNum: 0.1, directReceiver: &qc, poisson: poisson, wavelength: 1550, encodingType: polarization()}
 	components := map[string]interface{}{"lightSource": &ls, "cchannel": &cc, "qchannel": &qc}
 	alice := Node{name: "alice", timeline: &tl, components: components}
 	qc.setSender(&ls)
 	cc.addEnd(&alice)
 
 	//Bob
-	detectors := []*Detector{{efficiency: 0.8, darkCount: 1, timeResolution: 10}, {efficiency: 0.8, darkCount: 1, timeResolution: 10}}
-	for _, i := range detectors {
-		i._init()
-	}
+	detectors := []*Detector{{efficiency: 0.8, darkCount: 0, timeResolution: 10, countRate: 50 * math.Pow10(6)}, {efficiency: 0.8, darkCount: 0, timeResolution: 10, countRate: 50 * math.Pow10(6)}}
+
 	qsd := QSDetector{name: "bob.qsdetector", timeline: &tl, detectors: detectors}
 	qsd._init()
 	components = map[string]interface{}{"detector": &qsd, "cchannel": &cc, "qchannel": &qc}
@@ -432,25 +426,19 @@ func test2() {
 	tl := kernel.Timeline{Name: "alice2", LookAhead: math.MaxInt64}
 	tl.SetEndTime(uint64(math.Pow10(13))) //stop time is 100 ms
 	op := OpticalChannel{lightSpeed: 3 * math.Pow10(-4), polarizationFidelity: 0.99, distance: math.Pow10(3)}
-	op._init()
 	qc := QuantumChannel{name: "qc", timeline: &tl, OpticalChannel: op}
-	qc._init()
-	cc := ClassicalChannel{name: "cc", timeline: &tl, OpticalChannel: op}
-	cc._init()
+	cc := ClassicalChannel{name: "cc", timeline: &tl, OpticalChannel: op, delay: float64(1 * math.Pow10(9))}
 
 	// Alice
 	ls := LightSource{name: "Alice.lightSource", timeline: &tl, frequency: 80 * math.Pow10(6), meanPhotonNum: 0.1, directReceiver: &qc, encodingType: timeBin()}
-	ls._init()
 	components := map[string]interface{}{"asource": &ls, "cchannel": &cc, "qchannel": &qc}
 	alice := Node{name: "alice", timeline: &tl, components: components}
 	qc.setSender(&ls)
 	cc.addEnd(&alice)
 
 	//Bob
-	detectors := []*Detector{{efficiency: 0.8, darkCount: 1, timeResolution: 10}, {efficiency: 0.8, darkCount: 1, timeResolution: 10}, {efficiency: 0.8, darkCount: 1, timeResolution: 10}}
-	for _, d := range detectors {
-		d._init()
-	}
+	detectors := []*Detector{{efficiency: 0.8, darkCount: 100, timeResolution: 10, countRate: 50 * math.Pow10(6)}, {efficiency: 0.8, darkCount: 100, timeResolution: 10, countRate: 50 * math.Pow10(6)}, {efficiency: 0.8, darkCount: 100, timeResolution: 10, countRate: 50 * math.Pow10(6)}, {efficiency: 0.8, darkCount: 100, timeResolution: 10, countRate: 50 * math.Pow10(6)}}
+
 	interferometer := Interferometer{pathDifference: timeBin()["binSeparation"].(int)}
 	qsd := QSDetector{name: "bob.qsdetector", timeline: &tl, detectors: detectors, encodingType: timeBin(), interferometer: &interferometer}
 	qsd._init()

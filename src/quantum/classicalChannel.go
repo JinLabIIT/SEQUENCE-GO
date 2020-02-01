@@ -10,13 +10,7 @@ type ClassicalChannel struct {
 	name     string           // inherit
 	timeline *kernel.Timeline // inherit
 	ends     []*Node          // ends must equal to 2
-	delay    float64
-}
-
-func (cc *ClassicalChannel) _init() {
-	if cc.delay == 0 {
-		cc.delay = cc.distance / cc.lightSpeed
-	}
+	delay    float64          // ps
 }
 
 func (cc *ClassicalChannel) addEnd(node *Node) {
@@ -33,12 +27,12 @@ func (cc *ClassicalChannel) transmit(msg string, source *Node) {
 	if !exists(cc.ends, source) {
 		panic("no endpoint " + source.name)
 	}
-	/*	var receiver *Node
-		for _, e := range cc.ends { // ?
-			if e != source {
-				receiver = e
-			}
-		}*/
+
+	if cc.delay == float64(0) {
+		panic("classical channel delay is 0")
+	}
+	println("transmit")
+
 	message := kernel.Message{"message": msg}
 	futureTime := cc.timeline.Now() + uint64(math.Round(cc.delay))
 	process := kernel.Process{Fnptr: source.receiveMessage, Message: message, Owner: cc.timeline}

@@ -21,15 +21,6 @@ type LightSource struct {
 	poisson        *rng.PoissonGenerator
 }
 
-func (ls *LightSource) _init() {
-	if ls.wavelength == 0 {
-		ls.wavelength = 1550
-	}
-	if ls.encodingType == nil {
-		ls.encodingType = polarization()
-	}
-}
-
 // can be optimized later
 func (ls *LightSource) emit(stateList *Basis) {
 	//fmt.Println("emit message")

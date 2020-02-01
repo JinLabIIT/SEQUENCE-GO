@@ -19,20 +19,22 @@ type Detector struct {
 	on                bool
 }
 
-func (d *Detector) _init() {
-	if d.efficiency == 0 {
-		d.efficiency = 1
-	}
-	if d.countRate == 0 {
-		d.countRate = math.MaxFloat64 // measured in Hz
-	}
-	if d.timeResolution == 0 {
-		d.timeResolution = 1
-	}
-	d.on = true
-}
+//
+//func (d *Detector) _init() {
+//	if d.efficiency == 0 {
+//		d.efficiency = 1
+//	}
+//	if d.countRate == 0 {
+//		d.countRate = math.MaxFloat64 // measured in Hz
+//	}
+//	if d.timeResolution == 0 {
+//		d.timeResolution = 1
+//	}
+//
+//}
 
 func (d *Detector) init() {
+	d.on = true
 	d.addDarkCount(kernel.Message{})
 }
 
@@ -48,6 +50,9 @@ func (d *Detector) get(message kernel.Message) {
 }
 
 func (d *Detector) addDarkCount(message kernel.Message) {
+	if d.darkCount == 0 {
+		return
+	}
 	if d.on {
 		timeToNext := uint64(rand.ExpFloat64()/d.darkCount) * uint64(math.Pow10(12))
 		time := timeToNext + d.timeline.Now()
