@@ -32,9 +32,8 @@ func (eventList *EventList) merge(another EventList) {
 	a := eventList.events.Len()
 	b := another.events.Len()
 	n := a + b
-	for i := 0; i < another.events.Len(); i++ {
-		eventList.events = append(eventList.events, another.events[i])
-	}
+	eventList.events = append(eventList.events, another.events...)
+
 	for i := int(n/2) - 1; i >= 0; i-- {
 		eventList.minHeapify(n, i)
 	}

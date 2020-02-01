@@ -51,24 +51,33 @@ func (t *Timeline) Schedule(event *Event) {
 	}
 }
 
-// get events in the event buffer
 func (t *Timeline) getCrossTimelineEvents() {
-	for _, timeline := range t.otherTimeline {
-		if timeline.eventBuffer[t] == nil || timeline.eventBuffer[t].size() == 0 {
-			continue
-		}
-		t.scheduledEvent += uint64(timeline.eventBuffer[t].size())
-		t.events.merge(*timeline.eventBuffer[t])
-	}
-}
+	//fmt.Println("before", t.Name, t.events.size())
+	var eb []*EventList
+	eb = append(eb, &t.events)
 
-func (t *Timeline) helpGetCrossTimelineEvents(buffer EventBuffer) {
-	for _, timeline := range t.otherTimeline {
-		if timeline.eventBuffer[t] == nil || timeline.eventBuffer[t].size() == 0 {
+	for i := 0; i < len(t.otherTimeline); i++ {
+		var tmp *EventList
+		if t.otherTimeline[i].eventBuffer[t] == nil || t.otherTimeline[i].eventBuffer[t].size() == 0 {
 			continue
 		}
-		t.scheduledEvent += uint64(timeline.eventBuffer[t].size())
-		t.events.merge(*timeline.eventBuffer[t])
+		tmp = t.otherTimeline[i].eventBuffer[t]
+		t.scheduledEvent += uint64(tmp.size())
+		eb = append(eb, tmp)
+	}
+	//fmt.Println("    ", t.Name, eb[len(t.otherTimeline)-1].size())
+	for len(eb) != 1 {
+		//memory question
+		var eb2 []*EventList
+		for i := 0; i < len(eb); i += 2 {
+			if i+1 < len(eb) {
+				eb[i].merge(*(eb[i+1]))
+				eb2 = append(eb2, eb[i])
+			} else {
+				eb2 = append(eb2, eb[i])
+			}
+		}
+		eb = eb2
 	}
 }
 
@@ -90,7 +99,7 @@ func (t *Timeline) syncWindow() {
 	for t.events.size() != 0 && t.events.top().Time < t.nextStopTime {
 		event := t.events.pop()
 		if event.Time < t.time {
-			err_msg := fmt.Sprint("running an earlier event now: ", t.time, "event: ", event.Time)
+			err_msg := fmt.Sprint("running an earlier event now: ", t.time, " event: ", event.Time)
 			panic(err_msg)
 		}
 		t.time = event.Time

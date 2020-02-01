@@ -55,8 +55,8 @@ func TestTimeline_Schedule(t *testing.T) {
 }
 
 func TestTimeline_getCrossTimelineEvents(t *testing.T) {
-	n := 2 //No. timeline
-	a := 1 //No. event
+	n := 10   //No. timeline
+	a := 1000 //No. event
 	nextStop := make([]uint64, n)
 	tl := initTimeline(n, nextStop) //init timeline
 	rd := make([]int, n*a)
