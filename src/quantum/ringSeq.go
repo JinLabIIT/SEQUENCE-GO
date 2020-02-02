@@ -1,19 +1,14 @@
 package quantum
 
 import (
-	"github.com/leesper/go_rng"
 	"golang.org/x/exp/errors/fmt"
 	"kernel"
 	"math"
-	"math/rand"
 )
 
-func main(n int, threadNum int, lookAhead uint64) {
+func Main(n int, threadNum int, lookAhead uint64) {
 	fmt.Println("Ring QKD Network (sequential)")
 
-	seed := int64(156)
-	rand.Seed(seed)
-	poisson := rng.NewPoissonGenerator(seed)
 	tls := make([]*kernel.Timeline, threadNum)
 	nodeOnThread := n / threadNum
 	for i := 0; i < threadNum; i++ {
@@ -57,8 +52,10 @@ func main(n int, threadNum int, lookAhead uint64) {
 		op := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, distance: 10 * math.Pow10(3), lightSpeed: 2 * math.Pow10(-4)}
 		qcName := fmt.Sprint("qc_", nodes[i].name, "_", nodes[(i+1)%totalNodes].name)
 		qc := QuantumChannel{name: qcName, timeline: tls[i/nodeOnThread], OpticalChannel: op}
+		qc.init()
 		lsName := fmt.Sprint(nodes[i].name, ".lightsource")
-		ls := LightSource{name: lsName, timeline: tls[i/nodeOnThread], frequency: 80 * math.Pow10(6), meanPhotonNum: 0.1, directReceiver: &qc, poisson: poisson, wavelength: 1550, encodingType: polarization()}
+		ls := LightSource{name: lsName, timeline: tls[i/nodeOnThread], frequency: 80 * math.Pow10(6), meanPhotonNum: 0.1, directReceiver: &qc, wavelength: 1550, encodingType: polarization()}
+		ls.init()
 		qc.setSender(&ls)
 		detectors := []*Detector{{efficiency: 0.8, darkCount: 0, timeResolution: 10, countRate: 50 * math.Pow10(6)}, {efficiency: 0.8, darkCount: 0, timeResolution: 10, countRate: 50 * math.Pow10(6)}}
 		qsdName := fmt.Sprint(nodes[(i+1)%totalNodes].name, ".qsdetector")

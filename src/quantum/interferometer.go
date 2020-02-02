@@ -89,7 +89,7 @@ func (_switch *Switch) get(photon *Photon) {
 	receiver := _switch.receiver[_switch.stateList[index]]
 	// check if receiver is detector, if we're using time bin, and if the photon is "late" to schedule measurement
 	if _switch.typeList[index] == 1 { //???
-		if photon.encodingType["name"] == "timeBin" && photon.measure(photon.encodingType["bases"].([]*Basis)[0]) == 1 {
+		if photon.encodingType["name"] == "timeBin" && photon.measure(photon.encodingType["bases"].([]*Basis)[0], 0.0) == 1 { //question mark
 			time := _switch.timeline.Now() + photon.encodingType["binSeparation"].(uint64)
 			message := kernel.Message{}
 			process := kernel.Process{Fnptr: receiver.(*Detector).get, Message: message, Owner: _switch.timeline}

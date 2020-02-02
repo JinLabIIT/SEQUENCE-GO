@@ -3,7 +3,6 @@ package quantum
 import (
 	"kernel"
 	"math"
-	"math/rand"
 	"reflect"
 )
 
@@ -32,8 +31,8 @@ func (photon *Photon) entangle(photon2 *Photon) {
 	// need to do in entangle experience
 }
 
-func (photon *Photon) randomNoise() {
-	angle := rand.Float64() * 2 * math.Pi
+func (photon *Photon) randomNoise(noise float64) {
+	angle := noise * 2 * math.Pi
 	photon.quantumState = []complex128{complex(math.Cos(angle), 0), complex(math.Sin(angle), 0)}
 }
 
@@ -43,7 +42,7 @@ func (photon *Photon) setState(state []complex128) {
 	}
 }
 
-func (photon *Photon) measure(basis *Basis) int {
+func (photon *Photon) measure(basis *Basis, prob float64) int {
 	// only work for BB84
 	state := oneToTwo(photon.quantumState) // 1-D array to 2-D array
 	u := (*basis)[0]
@@ -71,7 +70,7 @@ func (photon *Photon) measure(basis *Basis) int {
 	// tmp = state.conj().transpose() @ projector0.conj().transpose() @ projector0 @ state
 	prob0 := real((*tmp)[0][0])
 	result := 0
-	if rand.Float64() > prob0 {
+	if prob > prob0 { // given by the function
 		result = 1
 	}
 

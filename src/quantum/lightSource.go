@@ -4,7 +4,6 @@ import (
 	rng "github.com/leesper/go_rng"
 	"kernel"
 	"math"
-	"math/rand"
 )
 
 type LightSource struct {
@@ -19,6 +18,14 @@ type LightSource struct {
 	phaseError     float64
 	photonCounter  int
 	poisson        *rng.PoissonGenerator
+	rng            *rng.UniformGenerator
+	grng           *rng.GaussianGenerator
+}
+
+func (ls *LightSource) init() {
+	ls.rng = rng.NewUniformGenerator(123)
+	ls.grng = rng.NewGaussianGenerator(123)
+	ls.poisson = rng.NewPoissonGenerator(123)
 }
 
 // can be optimized later
@@ -29,7 +36,7 @@ func (ls *LightSource) emit(stateList *Basis) {
 	for i, state := range *stateList {
 		numPhotons := ls.poisson.Poisson(ls.meanPhotonNum) //question mark
 		if numPhotons > 0 {
-			if rand.Float64() < ls.phaseError {
+			if ls.rng.Float64() < ls.phaseError {
 				multiply([]float64{1.0, -1.0}, state)
 			}
 			message := kernel.Message{"stateList": stateList, "numPhotons": numPhotons, "state": state, "index": i + 1}
@@ -51,7 +58,7 @@ func (ls *LightSource) _emit(message kernel.Message) {
 	time := ls.timeline.Now()
 	sep := uint64(math.Round(math.Pow10(12) / ls.frequency))
 	for i := 0; i < int(numPhotons); i++ {
-		wavelength := ls.lineWidth*rand.NormFloat64() + ls.wavelength
+		wavelength := ls.lineWidth*ls.grng.Gaussian(0, 1) + ls.wavelength
 		newPhoton := Photon{timeline: ls.timeline, wavelength: wavelength, location: ls.directReceiver, encodingType: ls.encodingType, quantumState: state}
 		newPhoton._init()
 		ls.directReceiver.get(&newPhoton)
@@ -62,7 +69,7 @@ func (ls *LightSource) _emit(message kernel.Message) {
 		numPhotons := ls.poisson.Poisson(ls.meanPhotonNum)
 		if numPhotons > 0 {
 			state = (*stateList)[index]
-			if rand.Float64() < ls.phaseError {
+			if ls.rng.Float64() < ls.phaseError {
 				multiply([]float64{1.0, -1.0}, state)
 			}
 			message := kernel.Message{"stateList": stateList, "numPhotons": numPhotons, "state": state, "index": index + 1}
