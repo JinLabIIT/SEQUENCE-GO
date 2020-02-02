@@ -400,8 +400,8 @@ func test() {
 	bbb := BB84{name: "bbb", timeline: &tl, role: 1} //bob.role = 1
 	bba._init()
 	bbb._init()
-	bba.assignNode(&alice, cca.delay, int(qc.lightSpeed/qc.distance))
-	bbb.assignNode(&bob, cca.delay, int(qc.lightSpeed/qc.distance))
+	bba.assignNode(&alice, cca.delay, int(qc.distance/qc.lightSpeed))
+	bbb.assignNode(&bob, cca.delay, int(qc.distance/qc.lightSpeed))
 	bba.another = &bbb
 	bbb.another = &bba
 
