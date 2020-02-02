@@ -1,8 +1,10 @@
 package quantum
 
 import (
+	"fmt"
 	"kernel"
 	"math"
+	"strconv"
 )
 
 type Node struct {
@@ -16,14 +18,8 @@ type Node struct {
 	cchannels  map[string]*ClassicalChannel
 }
 
-func (node *Node) assignCChannel(cchannel *ClassicalChannel) {
-	var another string
-	for _, end := range cchannel.ends {
-		if end.name != node.name {
-			another = end.name
-		}
-	}
-	node.cchannels[another] = cchannel
+func (node *Node) assignCChannel(cc *ClassicalChannel) {
+	node.cchannels[cc.receiver.name] = cc
 }
 
 func (node *Node) sendQubits(basisList, bitList []int, sourceName string) {
@@ -134,12 +130,13 @@ func (node *Node) getSourceCount() interface{} { // tmp
 }
 
 func (node *Node) sendMessage(msg string, dst string) {
-	//fmt.Println("sendMessage " + strconv.FormatUint(node.timeline.Now(), 10))
+	fmt.Println(node.name, " sendMessage "+strconv.FormatUint(node.timeline.Now(), 10))
 	//node.components[channel].(*ClassicalChannel).transmit(msg, node.receiver)
 	node.cchannels[dst].transmit(msg, node)
 }
 
 func (node *Node) receiveMessage(message kernel.Message) {
+	println(node.name, " receive message")
 	for _, protocol := range node.protocols {
 		protocol.(*BB84).receivedMessage(message)
 	}

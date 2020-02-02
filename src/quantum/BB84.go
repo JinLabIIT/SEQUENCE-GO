@@ -141,12 +141,13 @@ func (bb84 *BB84) endPhotonPulse(message kernel.Message) {
 
 func (bb84 *BB84) receivedMessage(message kernel.Message) {
 	if bb84.another.node.name != message["src"] {
+		println(message["src"])
 		return
 	}
 	if bb84.working && bb84.timeline.Now() < bb84.endRunTimes[0] {
 		message0 := strings.Split(message["message"].(string), " ")
 		if message0[0] == "beginPhotonPulse" {
-			// fmt.Println("beginPhotonPulse in received message " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
+			fmt.Println("beginPhotonPulse in received message " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
 			bb84.qubitFrequency, _ = strconv.ParseFloat(message0[1], 64)
 			bb84.lightTime, _ = strconv.ParseFloat(message0[2], 64)
 			bb84.startTime, _ = strconv.ParseUint(message0[3], 10, 64)
@@ -165,12 +166,12 @@ func (bb84 *BB84) receivedMessage(message kernel.Message) {
 			event1 := kernel.Event{Time: bb84.startTime, Process: &process1, Priority: 0}
 			bb84.timeline.Schedule(&event1)
 		} else if message0[0] == "receivedQubits" {
-			// fmt.Println("receivedQubits " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
+			fmt.Println("receivedQubits " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
 			bases := bb84.basisLists[0]
 			bb84.basisLists = bb84.basisLists[1:]
 			bb84.node.sendMessage("basisList "+toString(bases), bb84.another.node.name) // need to do
 		} else if message0[0] == "basisList" {
-			// fmt.Println("basislist " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
+			fmt.Println("basislist " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
 			basisListAlice := make([]int, 0, len(message0[1:]))
 			for _, basis := range message0[1:] {
 				value, _ := strconv.Atoi(basis)
@@ -197,7 +198,7 @@ func (bb84 *BB84) receivedMessage(message kernel.Message) {
 			}
 			bb84.node.sendMessage("matchingIndices "+toString(indices), bb84.another.node.name)
 		} else if message0[0] == "matchingIndices" {
-			// fmt.Println("matchingIndices " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
+			fmt.Println("matchingIndices " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
 			// need to do
 			indices := make([]int, 0, len(message0[1:]))
 			if len(message0) != 1 { // no matching indices
@@ -259,7 +260,7 @@ func (bb84 *BB84) receivedMessage(message kernel.Message) {
 }
 
 func (bb84 *BB84) generateKey(length, keyNum int, runTime uint64) {
-	// fmt.Println("generateKey " + bb84.name)
+	fmt.Println("generateKey " + bb84.name)
 	if bb84.role != 0 { // 0: Alice 1:Bob
 		panic("generate key must be called from Alice")
 	}
@@ -283,7 +284,7 @@ func (bb84 *BB84) generateKey(length, keyNum int, runTime uint64) {
 }
 
 func (bb84 *BB84) startProtocol(message kernel.Message) {
-	// fmt.Println("startProtocol " + bb84.name)
+	fmt.Println("startProtocol " + bb84.name)
 	if len(bb84.keyLength) > 0 {
 		bb84.basisLists = [][]int{}
 		bb84.another.basisLists = [][]int{}
@@ -361,14 +362,13 @@ func test() {
 	rand.Seed(seed)
 	fmt.Println("Polarization:")
 	poisson := rng.NewPoissonGenerator(seed)
-	tl := kernel.Timeline{Name: "alice", LookAhead: math.MaxInt64}
+	tl := kernel.Timeline{Name: "timeline", LookAhead: math.MaxInt64}
 	tl.SetEndTime(uint64(math.Pow10(11))) //stop time is 100 ms
 	op := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, distance: 10 * math.Pow10(3), lightSpeed: 2 * math.Pow10(-4)}
 	qc := QuantumChannel{name: "qc", timeline: &tl, OpticalChannel: op}
-	cc := ClassicalChannel{name: "cc", timeline: &tl, OpticalChannel: op, delay: float64(1 * math.Pow10(9))}
 	// Alice
 	ls := LightSource{name: "Alice.lightSource", timeline: &tl, frequency: 80 * math.Pow10(6), meanPhotonNum: 0.1, directReceiver: &qc, poisson: poisson, wavelength: 1550, encodingType: polarization()}
-	components := map[string]interface{}{"lightSource": &ls, "cchannel": &cc, "qchannel": &qc}
+	components := map[string]interface{}{"lightSource": &ls}
 	alice := Node{name: "alice", timeline: &tl, components: components}
 	qc.setSender(&ls)
 
@@ -377,25 +377,31 @@ func test() {
 
 	qsd := QSDetector{name: "bob.qsdetector", timeline: &tl, detectors: detectors}
 	qsd._init()
-	components = map[string]interface{}{"detector": &qsd, "cchannel": &cc, "qchannel": &qc}
+	qsd.init()
+
+	components = map[string]interface{}{"detector": &qsd}
 	bob := Node{name: "bob", timeline: &tl, components: components}
 	alice.cchannels = make(map[string]*ClassicalChannel)
 	bob.cchannels = make(map[string]*ClassicalChannel)
 	qc.setReceiver(&qsd)
-	cc.setEnds([]*Node{&alice, &bob})
-	//alice.cchannels = map[string]*ClassicalChannel{"cchannel": &cc}
-	//bob.cchannels = map[string]*ClassicalChannel{"cchannel": &cc}
-	// init() components elements
-	qsd.init()
-	// need to do
+
+	cca := ClassicalChannel{name: "alice_bob", timeline: &tl, OpticalChannel: op, delay: float64(1 * math.Pow10(9))}
+	cca.SetSender(&alice)
+	cca.SetReceiver(&bob)
+	alice.assignCChannel(&cca)
+
+	ccb := ClassicalChannel{name: "bob_alice", timeline: &tl, OpticalChannel: op, delay: float64(1 * math.Pow10(9))}
+	ccb.SetSender(&bob)
+	ccb.SetReceiver(&alice)
+	bob.assignCChannel(&ccb)
 
 	//BB84
 	bba := BB84{name: "bba", timeline: &tl, role: 0} //alice.role = 0
 	bbb := BB84{name: "bbb", timeline: &tl, role: 1} //bob.role = 1
 	bba._init()
 	bbb._init()
-	bba.assignNode(&alice, cc.delay, int(qc.lightSpeed/qc.distance))
-	bbb.assignNode(&bob, cc.delay, int(qc.lightSpeed/qc.distance))
+	bba.assignNode(&alice, cca.delay, int(qc.lightSpeed/qc.distance))
+	bbb.assignNode(&bob, cca.delay, int(qc.lightSpeed/qc.distance))
 	bba.another = &bbb
 	bbb.another = &bba
 
@@ -425,59 +431,69 @@ func test() {
 	fmt.Print(floats.Sum(bba.errorRates) / float64(len(bba.errorRates)))
 	// TIME BIN TESTING need to modify
 }
-func test2() {
-	fmt.Println("Time Bin:")
-	tl := kernel.Timeline{Name: "alice2", LookAhead: math.MaxInt64}
-	tl.SetEndTime(uint64(math.Pow10(13))) //stop time is 100 ms
-	op := OpticalChannel{lightSpeed: 3 * math.Pow10(-4), polarizationFidelity: 0.99, distance: math.Pow10(3)}
-	qc := QuantumChannel{name: "qc", timeline: &tl, OpticalChannel: op}
-	cc := ClassicalChannel{name: "cc", timeline: &tl, OpticalChannel: op, delay: float64(1 * math.Pow10(9))}
 
-	// Alice
-	ls := LightSource{name: "Alice.lightSource", timeline: &tl, frequency: 80 * math.Pow10(6), meanPhotonNum: 0.1, directReceiver: &qc, encodingType: timeBin()}
-	components := map[string]interface{}{"asource": &ls, "cchannel": &cc, "qchannel": &qc}
-	alice := Node{name: "alice", timeline: &tl, components: components}
-	qc.setSender(&ls)
-	cc.addEnd(&alice)
-
-	//Bob
-	detectors := []*Detector{{efficiency: 0.8, darkCount: 100, timeResolution: 10, countRate: 50 * math.Pow10(6)}, {efficiency: 0.8, darkCount: 100, timeResolution: 10, countRate: 50 * math.Pow10(6)}, {efficiency: 0.8, darkCount: 100, timeResolution: 10, countRate: 50 * math.Pow10(6)}, {efficiency: 0.8, darkCount: 100, timeResolution: 10, countRate: 50 * math.Pow10(6)}}
-
-	interferometer := Interferometer{pathDifference: timeBin()["binSeparation"].(int)}
-	qsd := QSDetector{name: "bob.qsdetector", timeline: &tl, detectors: detectors, encodingType: timeBin(), interferometer: &interferometer}
-	qsd._init()
-	components = map[string]interface{}{"bdetector": &qsd, "cchannel": &cc, "qchannel": &qc}
-	bob := Node{name: "bob", timeline: &tl, components: components}
-	qc.setReceiver(&qsd)
-	cc.addEnd(&bob)
-
-	// init() components elements
-	qsd.init()
-	// need to do
-
-	//BB84
-	bba := BB84{name: "bba", timeline: &tl, role: 0, sourceName: "asource"}     //alice.role = 0
-	bbb := BB84{name: "bbb", timeline: &tl, role: 1, detectorName: "bdetector"} //bob.role = 1
-	bba.assignNode(&alice, cc.delay, int(qc.lightSpeed/qc.distance))
-	bbb.assignNode(&bob, cc.delay, int(qc.lightSpeed/qc.distance))
-	bba.another = &bbb
-	bbb.another = &bba
-
-	//Parent
-	pa := Parent{keySize: 512}
-	pb := Parent{keySize: 512}
-	pa.child = &bba
-	pb.child = &bbb
-	bba.addParent(&pa)
-	bbb.addParent(&pb)
-
-	message := kernel.Message{}
-	process := kernel.Process{Fnptr: pa.run, Message: message, Owner: &tl}
-	event := kernel.Event{Time: 0, Priority: 0, Process: &process}
-	tl.Schedule(&event)
-	kernel.Run([]*kernel.Timeline{&tl})
-
-	fmt.Println("latency (s): " + fmt.Sprintf("%f", bba.latency))
-	//fmt.Println("average throughput (Mb/s): "+fmt.Sprintf("%f",math.Pow10(-6) * sum(bba.throughputs) / len(bba.throughputs)))
-	fmt.Println("bit error rates:")
-}
+//func test2() {
+//	fmt.Println("Time Bin:")
+//	tl := kernel.Timeline{Name: "alice2", LookAhead: math.MaxInt64}
+//	tl.SetEndTime(uint64(math.Pow10(13))) //stop time is 100 ms
+//	op := OpticalChannel{lightSpeed: 3 * math.Pow10(-4), polarizationFidelity: 0.99, distance: math.Pow10(3)}
+//	qc := QuantumChannel{name: "qc", timeline: &tl, OpticalChannel: op}
+//
+//	// Alice
+//	ls := LightSource{name: "Alice.lightSource", timeline: &tl, frequency: 80 * math.Pow10(6), meanPhotonNum: 0.1, directReceiver: &qc, encodingType: timeBin()}
+//	components := map[string]interface{}{"asource": &ls}
+//	alice := Node{name: "alice", timeline: &tl, components: components}
+//	qc.setSender(&ls)
+//
+//
+//
+//	//Bob
+//	detectors := []*Detector{{efficiency: 0.8, darkCount: 100, timeResolution: 10, countRate: 50 * math.Pow10(6)}, {efficiency: 0.8, darkCount: 100, timeResolution: 10, countRate: 50 * math.Pow10(6)}, {efficiency: 0.8, darkCount: 100, timeResolution: 10, countRate: 50 * math.Pow10(6)}, {efficiency: 0.8, darkCount: 100, timeResolution: 10, countRate: 50 * math.Pow10(6)}}
+//
+//	interferometer := Interferometer{pathDifference: timeBin()["binSeparation"].(int)}
+//	qsd := QSDetector{name: "bob.qsdetector", timeline: &tl, detectors: detectors, encodingType: timeBin(), interferometer: &interferometer}
+//	qsd._init()
+//	components = map[string]interface{}{"bdetector": &qsd}
+//	bob := Node{name: "bob", timeline: &tl, components: components}
+//	qc.setReceiver(&qsd)
+//
+//	cc := ClassicalChannel{name: "alice_bob", timeline: &tl, OpticalChannel: op, delay: float64(1 * math.Pow10(9))}
+//	cc.SetSender(&alice)
+//	cc.SetReceiver(&bob)
+//	alice.assignCChannel(&cc)
+//
+//	cc = ClassicalChannel{name: "bob_alice", timeline: &tl, OpticalChannel: op, delay: float64(1 * math.Pow10(9))}
+//	cc.SetSender(&bob)
+//	cc.SetReceiver(&alice)
+//	bob.assignCChannel(&cc)
+//
+//	// init() components elements
+//	qsd.init()
+//	// need to do
+//
+//	//BB84
+//	bba := BB84{name: "bba", timeline: &tl, role: 0, sourceName: "asource"}     //alice.role = 0
+//	bbb := BB84{name: "bbb", timeline: &tl, role: 1, detectorName: "bdetector"} //bob.role = 1
+//	bba.assignNode(&alice, cc.delay, int(qc.lightSpeed/qc.distance))
+//	bbb.assignNode(&bob, cc.delay, int(qc.lightSpeed/qc.distance))
+//	bba.another = &bbb
+//	bbb.another = &bba
+//
+//	//Parent
+//	pa := Parent{keySize: 512}
+//	pb := Parent{keySize: 512}
+//	pa.child = &bba
+//	pb.child = &bbb
+//	bba.addParent(&pa)
+//	bbb.addParent(&pb)
+//
+//	message := kernel.Message{}
+//	process := kernel.Process{Fnptr: pa.run, Message: message, Owner: &tl}
+//	event := kernel.Event{Time: 0, Priority: 0, Process: &process}
+//	tl.Schedule(&event)
+//	kernel.Run([]*kernel.Timeline{&tl})
+//
+//	fmt.Println("latency (s): " + fmt.Sprintf("%f", bba.latency))
+//	//fmt.Println("average throughput (Mb/s): "+fmt.Sprintf("%f",math.Pow10(-6) * sum(bba.throughputs) / len(bba.throughputs)))
+//	fmt.Println("bit error rates:")
+//}

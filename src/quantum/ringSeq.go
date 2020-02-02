@@ -17,7 +17,8 @@ func main(n int, threadNum int, lookAhead uint64) {
 	poisson := rng.NewPoissonGenerator(seed)
 	tls := make([]*kernel.Timeline, threadNum)
 	for i := 0; i < threadNum; i++ {
-		tl := kernel.Timeline{Name: "timeline", LookAhead: lookAhead}
+		tlName := fmt.Sprint("timeline", i)
+		tl := kernel.Timeline{Name: tlName, LookAhead: lookAhead}
 		tl.SetEndTime(uint64(math.Pow10(10))) //stop time is 100 sec
 		tls[i] = &tl
 	}
@@ -40,8 +41,16 @@ func main(n int, threadNum int, lookAhead uint64) {
 	for i := 0; i < totalNodes; i++ {
 		op := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, distance: 10 * math.Pow10(3), lightSpeed: 2 * math.Pow10(-4)}
 		ccName := fmt.Sprint("cc_", nodes[i].name, "_", nodes[(i+1)%totalNodes].name)
-		cc := &ClassicalChannel{name: ccName, timeline: tls[i%threadNum], OpticalChannel: op, delay: float64(1 * math.Pow10(9))}
-		cc.setEnds([]*Node{nodes[i], nodes[(i+1)%totalNodes]})
+		cc := &ClassicalChannel{name: ccName, OpticalChannel: op, delay: 1 * math.Pow10(9)}
+		cc.SetSender(nodes[i])
+		cc.SetReceiver(nodes[(i+1)%totalNodes])
+		nodes[i].assignCChannel(cc)
+
+		ccName = fmt.Sprint("cc_", nodes[(i+1)%totalNodes].name, "_", nodes[i].name)
+		cc = &ClassicalChannel{name: ccName, OpticalChannel: op, delay: 1 * math.Pow10(9)}
+		cc.SetSender(nodes[(i+1)%totalNodes])
+		cc.SetReceiver(nodes[i])
+		nodes[(i+1)%totalNodes].assignCChannel(cc)
 	}
 
 	// create light source, detector and quantum channels
@@ -71,8 +80,8 @@ func main(n int, threadNum int, lookAhead uint64) {
 		bbb := BB84{name: bbName, timeline: tls[((i+1)%totalNodes)%threadNum], role: 1} //bob.role = 1
 		bba._init()
 		bbb._init()
-		bba.assignNode(nodes[i], float64(1*math.Pow10(9)), 50000000)
-		bbb.assignNode(nodes[(i+1)%totalNodes], float64(1*math.Pow10(9)), 50000000)
+		bba.assignNode(nodes[i], 1*math.Pow10(9), 50000000)
+		bbb.assignNode(nodes[(i+1)%totalNodes], 1*math.Pow10(9), 50000000)
 		bba.another = &bbb
 		bbb.another = &bba
 		// TODO: assign protocols to nodes
