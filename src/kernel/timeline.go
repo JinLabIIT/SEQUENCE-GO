@@ -18,6 +18,7 @@ type Timeline struct {
 	LookAhead      uint64
 	executedEvent  uint64
 	scheduledEvent uint64
+	SyncCounter    uint64
 }
 
 func (t *Timeline) Init(lookahead, endTime uint64) {
@@ -114,6 +115,7 @@ func (t *Timeline) cleanEvenbuffer() {
 
 func (t *Timeline) run(br *Barrier, wg *sync.WaitGroup) {
 	for {
+		t.SyncCounter += 1
 		var maxListSize int
 		t.getCrossTimelineEvents()
 		nextStop := t.minNextStopTime()

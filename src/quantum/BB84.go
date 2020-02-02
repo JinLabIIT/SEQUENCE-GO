@@ -141,13 +141,12 @@ func (bb84 *BB84) endPhotonPulse(message kernel.Message) {
 
 func (bb84 *BB84) receivedMessage(message kernel.Message) {
 	if bb84.another.node.name != message["src"] {
-		println(message["src"])
 		return
 	}
 	if bb84.working && bb84.timeline.Now() < bb84.endRunTimes[0] {
 		message0 := strings.Split(message["message"].(string), " ")
 		if message0[0] == "beginPhotonPulse" {
-			fmt.Println("beginPhotonPulse in received message " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
+			//fmt.Println("beginPhotonPulse in received message " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
 			bb84.qubitFrequency, _ = strconv.ParseFloat(message0[1], 64)
 			bb84.lightTime, _ = strconv.ParseFloat(message0[2], 64)
 			bb84.startTime, _ = strconv.ParseUint(message0[3], 10, 64)
@@ -166,12 +165,12 @@ func (bb84 *BB84) receivedMessage(message kernel.Message) {
 			event1 := kernel.Event{Time: bb84.startTime, Process: &process1, Priority: 0}
 			bb84.timeline.Schedule(&event1)
 		} else if message0[0] == "receivedQubits" {
-			fmt.Println("receivedQubits " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
+			//fmt.Println("receivedQubits " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
 			bases := bb84.basisLists[0]
 			bb84.basisLists = bb84.basisLists[1:]
 			bb84.node.sendMessage("basisList "+toString(bases), bb84.another.node.name) // need to do
 		} else if message0[0] == "basisList" {
-			fmt.Println("basislist " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
+			//fmt.Println("basislist " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
 			basisListAlice := make([]int, 0, len(message0[1:]))
 			for _, basis := range message0[1:] {
 				value, _ := strconv.Atoi(basis)
@@ -198,7 +197,7 @@ func (bb84 *BB84) receivedMessage(message kernel.Message) {
 			}
 			bb84.node.sendMessage("matchingIndices "+toString(indices), bb84.another.node.name)
 		} else if message0[0] == "matchingIndices" {
-			fmt.Println("matchingIndices " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
+			//fmt.Println("matchingIndices " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
 			// need to do
 			indices := make([]int, 0, len(message0[1:]))
 			if len(message0) != 1 { // no matching indices
@@ -260,7 +259,7 @@ func (bb84 *BB84) receivedMessage(message kernel.Message) {
 }
 
 func (bb84 *BB84) generateKey(length, keyNum int, runTime uint64) {
-	fmt.Println("generateKey " + bb84.name)
+	//fmt.Println("generateKey " + bb84.name)
 	if bb84.role != 0 { // 0: Alice 1:Bob
 		panic("generate key must be called from Alice")
 	}
@@ -284,7 +283,7 @@ func (bb84 *BB84) generateKey(length, keyNum int, runTime uint64) {
 }
 
 func (bb84 *BB84) startProtocol(message kernel.Message) {
-	fmt.Println("startProtocol " + bb84.name)
+	//fmt.Println("startProtocol " + bb84.name)
 	if len(bb84.keyLength) > 0 {
 		bb84.basisLists = [][]int{}
 		bb84.another.basisLists = [][]int{}
@@ -344,7 +343,7 @@ type Parent struct {
 
 func (parent *Parent) run(message kernel.Message) {
 	//parent.combine = keySize / 64
-	parent.child.generateKey(parent.keySize, 10, math.MaxInt64)
+	parent.child.generateKey(parent.keySize, 1000000, math.MaxInt64)
 }
 
 func (parent *Parent) getKeyFromBB84(key []uint64) {

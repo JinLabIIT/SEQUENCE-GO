@@ -1,10 +1,8 @@
 package quantum
 
 import (
-	"fmt"
 	"kernel"
 	"math"
-	"strconv"
 )
 
 type Node struct {
@@ -130,13 +128,11 @@ func (node *Node) getSourceCount() interface{} { // tmp
 }
 
 func (node *Node) sendMessage(msg string, dst string) {
-	fmt.Println(node.name, " sendMessage "+strconv.FormatUint(node.timeline.Now(), 10))
 	//node.components[channel].(*ClassicalChannel).transmit(msg, node.receiver)
 	node.cchannels[dst].transmit(msg, node)
 }
 
 func (node *Node) receiveMessage(message kernel.Message) {
-	println(node.name, " receive message")
 	for _, protocol := range node.protocols {
 		protocol.(*BB84).receivedMessage(message)
 	}
