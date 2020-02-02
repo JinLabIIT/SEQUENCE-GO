@@ -73,7 +73,7 @@ func Test2(t *testing.T) {
 }
 
 func Test3(t *testing.T) {
-	main(64)
+	main(64, 2, 50000000)
 }
 
 /*func Test123(t *testing.T){

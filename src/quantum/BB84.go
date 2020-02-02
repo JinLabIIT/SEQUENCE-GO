@@ -214,7 +214,7 @@ func (bb84 *BB84) receivedMessage(message kernel.Message) {
 			if len(bb84.keyBits) >= bb84.keyLength[0] {
 				throughput := float64(bb84.keyLength[0]) * math.Pow10(12) / float64(bb84.timeline.Now()-bb84.lastKeyTime)
 				for len(bb84.keyBits) >= bb84.keyLength[0] && bb84.keysLeftList[0] > 0 {
-					fmt.Println(bb84.node.name, "got key")
+					// fmt.Println(bb84.node.name, "got key")
 					bb84.setKey()
 					if bb84.parent != nil {
 						bb84.parent.getKeyFromBB84(bb84.key)
@@ -259,7 +259,7 @@ func (bb84 *BB84) receivedMessage(message kernel.Message) {
 }
 
 func (bb84 *BB84) generateKey(length, keyNum int, runTime uint64) {
-	fmt.Println("generateKey " + bb84.name)
+	// fmt.Println("generateKey " + bb84.name)
 	if bb84.role != 0 { // 0: Alice 1:Bob
 		panic("generate key must be called from Alice")
 	}
@@ -283,7 +283,7 @@ func (bb84 *BB84) generateKey(length, keyNum int, runTime uint64) {
 }
 
 func (bb84 *BB84) startProtocol(message kernel.Message) {
-	fmt.Println("startProtocol " + bb84.name)
+	// fmt.Println("startProtocol " + bb84.name)
 	if len(bb84.keyLength) > 0 {
 		bb84.basisLists = [][]int{}
 		bb84.another.basisLists = [][]int{}
@@ -347,12 +347,12 @@ func (parent *Parent) run(message kernel.Message) {
 }
 
 func (parent *Parent) getKeyFromBB84(key []uint64) {
-	fmt.Print("key for " + parent.role + ": ")
+	// fmt.Print("key for " + parent.role + ": ")
 	var str string
 	for _, val := range key {
 		str += strconv.FormatUint(val, 2)
 	}
-	fmt.Println(str)
+	// fmt.Println(str)
 	parent.key = key
 }
 
