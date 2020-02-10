@@ -7,14 +7,14 @@ import (
 )
 
 type EdgeAttribute struct {
-	weight    int64 // edge does not exist if weight == 0
-	ratio     float64
-	lookAhead int64
+	Weight    int64 // edge does not exist if Weight == 0
+	Ratio     float64
+	LookAhead int64
 }
 
 type PartitionState struct {
 	graph     [][]EdgeAttribute
-	state     []map[int]bool
+	State     []map[int]bool
 	vMoveProb float64
 	rng       *rand.Rand
 }
@@ -29,7 +29,7 @@ func NewPartitionState(graph [][]EdgeAttribute, state []map[int]bool, vMoveProb 
 	}
 
 	if flag {
-		panic("state is empty")
+		panic("State is empty")
 	}
 	if len(graph) != len(graph[0]) {
 		panic("size of x and y dimensions are different")
@@ -39,43 +39,42 @@ func NewPartitionState(graph [][]EdgeAttribute, state []map[int]bool, vMoveProb 
 }
 
 func (self *PartitionState) Copy() interface{} {
-	state := make([]map[int]bool, len(self.state))
+	state := make([]map[int]bool, len(self.State))
 	for i := range state {
 		state[i] = make(map[int]bool)
-		for key, value := range self.state[i] {
+		for key, value := range self.State[i] {
 			state[i][key] = value
 		}
 	}
 	return &PartitionState{
 		graph:     self.graph,
-		state:     state,
+		State:     state,
 		vMoveProb: self.vMoveProb,
 		rng:       self.rng,
 	}
 }
 
 func (self *PartitionState) Move() {
-	//todo: avoid state that all elements are assigned to one subset
 	if self.rng.Float64() < self.vMoveProb {
 		// move single node to another subset
 		var srcIndex int
 		for {
-			srcIndex = self.rng.Intn(len(self.state))
-			if len(self.state[srcIndex]) > 0 {
+			srcIndex = self.rng.Intn(len(self.State))
+			if len(self.State[srcIndex]) > 0 {
 				break
 			}
 		}
-		eIndex := self.rng.Intn(len(self.state[srcIndex]))
-		dstIndex := self.rng.Intn(len(self.state))
-		element := getElementByIndex(self.state[srcIndex], eIndex)
-		delete(self.state[srcIndex], element)
-		_, exist := self.state[dstIndex][element]
+		eIndex := self.rng.Intn(len(self.State[srcIndex]))
+		dstIndex := self.rng.Intn(len(self.State))
+		element := getElementByIndex(self.State[srcIndex], eIndex)
+		delete(self.State[srcIndex], element)
+		_, exist := self.State[dstIndex][element]
 
 		if exist {
 			panic("node exists in subset")
 		}
 
-		self.state[dstIndex][element] = true
+		self.State[dstIndex][element] = true
 	} else {
 		// exchange two nodes from different subsets
 	}
@@ -88,16 +87,16 @@ func (self *PartitionState) Energy() float64 {
 
 func (self *PartitionState) getMaxExeTime(lookahead float64) float64 {
 	maxWeight := float64(0)
-	for i := range self.state {
+	for i := range self.State {
 		totalWeight := float64(0)
-		for nodeId := range self.state[i] {
+		for nodeId := range self.State[i] {
 			// from nodeId to others
 			for _, edge := range self.graph[nodeId] {
-				totalWeight += float64(edge.weight)
+				totalWeight += float64(edge.Weight)
 			}
 			// from others to nodeId
 			for j := range self.graph {
-				totalWeight += float64(self.graph[j][nodeId].weight) * self.graph[j][nodeId].ratio
+				totalWeight += float64(self.graph[j][nodeId].Weight) * self.graph[j][nodeId].Ratio
 			}
 		}
 		maxWeight = maxfloat64(maxWeight, totalWeight)
@@ -108,26 +107,26 @@ func (self *PartitionState) getMaxExeTime(lookahead float64) float64 {
 
 func (self *PartitionState) getMaxMergeTime(lookahead float64) float64 {
 	maxMergeTime := float64(0)
-	for _, state := range self.state {
+	for _, state := range self.State {
 		totalWeight := float64(0)
 		ids := make(map[int]bool, 0)
 		for nodeId := range state {
 			// from nodeId to others
 			for _, edge := range self.graph[nodeId] {
-				totalWeight += float64(edge.weight)
+				totalWeight += float64(edge.Weight)
 			}
 			// from others to nodeId
 			for j := range self.graph {
-				totalWeight += float64(self.graph[j][nodeId].weight) * self.graph[j][nodeId].ratio
+				totalWeight += float64(self.graph[j][nodeId].Weight) * self.graph[j][nodeId].Ratio
 				_, exist := state[j]
-				if self.graph[j][nodeId].weight > 0 && !exist {
+				if self.graph[j][nodeId].Weight > 0 && !exist {
 					ids[j] = true
 				}
 			}
 		}
 		outNum := 0
-		for _, st := range self.state {
-			for id, _ := range ids {
+		for _, st := range self.State {
+			for id := range ids {
 				_, exist := st[id]
 				if exist {
 					outNum += 1
@@ -147,10 +146,10 @@ func (self *PartitionState) getLookAhead() float64 {
 
 	for i := 0; i < len(self.graph); i++ {
 		for j := 0; j < len(self.graph); j++ {
-			if self.graph[i][j].weight != 0 {
+			if self.graph[i][j].Weight != 0 {
 				// exist edge
 				if !self.twoNodesBelongSameSet(i, j) {
-					lookahead = min(lookahead, self.graph[i][j].lookAhead)
+					lookahead = min(lookahead, self.graph[i][j].LookAhead)
 				}
 			} else {
 				// nil edge
@@ -163,7 +162,7 @@ func (self *PartitionState) getLookAhead() float64 {
 }
 
 func (self *PartitionState) twoNodesBelongSameSet(id1, id2 int) bool {
-	for _, subset := range self.state {
+	for _, subset := range self.State {
 		_, exist1 := subset[id1]
 		_, exist2 := subset[id2]
 		if exist1 && exist2 {
@@ -189,7 +188,9 @@ func getExeTime(weight float64, lookahead float64) float64 {
 }
 
 func getMergeTime(weight float64, outNum int, lookahead float64) float64 {
-	return math.Ceil(math.Log2(float64(outNum+1))) * weight * lookahead
+	k := 1.0
+	b := 0.0
+	return k*math.Ceil(math.Log2(float64(outNum+1)))*weight*lookahead + b
 }
 
 func min(a, b int64) int64 {

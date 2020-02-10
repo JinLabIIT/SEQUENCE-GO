@@ -35,44 +35,14 @@ func TestPartitionState_Copy(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			self := NewPartitionState(tt.fields.graph, tt.fields.state, tt.fields.vMoveProb, tt.fields.seed)
 			got := self.Copy().(*PartitionState)
-			self.state[0][-1] = true
-			if len(self.state[0]) == len(got.state[0]) {
+			self.State[0][-1] = true
+			if len(self.State[0]) == len(got.State[0]) {
 				t.Errorf("Copy() = %v", got)
 			}
 		})
 	}
 }
 
-//
-//func TestPartitionState_Energy(t *testing.T) {
-//	type fields struct {
-//		graph     [][]int
-//		state     [][]int
-//		vMoveProb float64
-//		rng       *rand.Rand
-//	}
-//	tests := []struct {
-//		name   string
-//		fields fields
-//		want   int
-//	}{
-//		// TODO: Add test cases.
-//	}
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			self := &PartitionState{
-//				graph:     tt.fields.graph,
-//				state:     tt.fields.state,
-//				vMoveProb: tt.fields.vMoveProb,
-//				rng:       tt.fields.rng,
-//			}
-//			if got := self.Energy(); got != tt.want {
-//				t.Errorf("Energy() = %v, want %v", got, tt.want)
-//			}
-//		})
-//	}
-//}
-//
 func TestPartitionState_Move(t *testing.T) {
 	type fields struct {
 		graph     [][]EdgeAttribute
@@ -109,7 +79,7 @@ func TestPartitionState_Move(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			self := NewPartitionState(tt.fields.graph, tt.fields.state, tt.fields.vMoveProb, tt.fields.seed)
 			self.Move()
-			reflect.DeepEqual(self.state, tt.want)
+			reflect.DeepEqual(self.State, tt.want)
 		})
 	}
 }
@@ -396,6 +366,63 @@ func TestPartitionState_getMaxMergeTime(t *testing.T) {
 			self := NewPartitionState(tt.fields.graph, tt.fields.state, tt.fields.vMoveProb, tt.fields.seed)
 			if got := self.getMaxMergeTime(tt.args.lookahead); got != tt.want {
 				t.Errorf("getMaxMergeTime() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestPartitionState_Energy(t *testing.T) {
+	type fields struct {
+		graph     [][]EdgeAttribute
+		state     []map[int]bool
+		vMoveProb float64
+		seed      int64
+	}
+	graph := make([][]EdgeAttribute, 0)
+	GRAPHSIZE := 4
+	for i := 0; i < GRAPHSIZE; i++ {
+		line := make([]EdgeAttribute, GRAPHSIZE)
+		graph = append(graph, line)
+	}
+	graph[0][1] = EdgeAttribute{10, 1, 10}
+	graph[1][2] = EdgeAttribute{20, 1, 20}
+	graph[2][3] = EdgeAttribute{30, 1, 30}
+	graph[3][0] = EdgeAttribute{40, 1, 40}
+	tests := []struct {
+		name   string
+		fields fields
+		want   float64
+	}{
+		{"test1", fields{
+			graph:     graph,
+			state:     []map[int]bool{{0: true, 1: true}, {2: true, 3: true}},
+			vMoveProb: 1,
+			seed:      1,
+		}, 240},
+		{"test2", fields{
+			graph:     graph,
+			state:     []map[int]bool{{0: true, 3: true}, {1: true, 2: true}},
+			vMoveProb: 1,
+			seed:      1,
+		}, 240},
+		{"test3", fields{
+			graph:     graph,
+			state:     []map[int]bool{{0: true, 1: true, 3: true}, {2: true}},
+			vMoveProb: 1,
+			seed:      1,
+		}, 300},
+		{"test4", fields{
+			graph:     graph,
+			state:     []map[int]bool{{0: true, 1: true, 2: true}, {3: true}},
+			vMoveProb: 1,
+			seed:      1,
+		}, 260},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			self := NewPartitionState(tt.fields.graph, tt.fields.state, tt.fields.vMoveProb, tt.fields.seed)
+			if got := self.Energy(); got != tt.want {
+				t.Errorf("Energy() = %v, want %v", got, tt.want)
 			}
 		})
 	}
