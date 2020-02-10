@@ -278,3 +278,125 @@ func TestPartitionState_getLookAhead(t *testing.T) {
 		})
 	}
 }
+
+func TestPartitionState_getMaxExeTime(t *testing.T) {
+	type fields struct {
+		graph     [][]EdgeAttribute
+		state     []map[int]bool
+		vMoveProb float64
+		seed      int64
+	}
+	type args struct {
+		lookahead float64
+	}
+	graph := make([][]EdgeAttribute, 0)
+	GRAPHSIZE := 4
+	for i := 0; i < GRAPHSIZE; i++ {
+		line := make([]EdgeAttribute, GRAPHSIZE)
+		graph = append(graph, line)
+	}
+	graph[0][1] = EdgeAttribute{10, 1, 10}
+	graph[1][2] = EdgeAttribute{20, 1, 20}
+	graph[2][3] = EdgeAttribute{30, 1, 30}
+	graph[3][0] = EdgeAttribute{40, 1, 40}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   float64
+	}{
+		{"test1", fields{
+			graph:     graph,
+			state:     []map[int]bool{{0: true, 1: true}, {2: true, 3: true}},
+			vMoveProb: 1,
+			seed:      1,
+		}, args{20}, 2400},
+		{"test2", fields{
+			graph:     graph,
+			state:     []map[int]bool{{0: true, 3: true}, {1: true, 2: true}},
+			vMoveProb: 1,
+			seed:      1,
+		}, args{10}, 1200},
+		{"test3", fields{
+			graph:     graph,
+			state:     []map[int]bool{{0: true, 1: true, 3: true}, {2: true}},
+			vMoveProb: 1,
+			seed:      1,
+		}, args{20}, 3000},
+		{"test4", fields{
+			graph:     graph,
+			state:     []map[int]bool{{0: true, 1: true, 2: true}, {3: true}},
+			vMoveProb: 1,
+			seed:      1,
+		}, args{30}, 3900},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			self := NewPartitionState(tt.fields.graph, tt.fields.state, tt.fields.vMoveProb, tt.fields.seed)
+			if got := self.getMaxExeTime(tt.args.lookahead); got != tt.want {
+				t.Errorf("getMaxExeTime() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestPartitionState_getMaxMergeTime(t *testing.T) {
+	type fields struct {
+		graph     [][]EdgeAttribute
+		state     []map[int]bool
+		vMoveProb float64
+		seed      int64
+	}
+	type args struct {
+		lookahead float64
+	}
+	graph := make([][]EdgeAttribute, 0)
+	GRAPHSIZE := 4
+	for i := 0; i < GRAPHSIZE; i++ {
+		line := make([]EdgeAttribute, GRAPHSIZE)
+		graph = append(graph, line)
+	}
+	graph[0][1] = EdgeAttribute{10, 1, 10}
+	graph[1][2] = EdgeAttribute{20, 1, 20}
+	graph[2][3] = EdgeAttribute{30, 1, 30}
+	graph[3][0] = EdgeAttribute{40, 1, 40}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   float64
+	}{
+		{"test1", fields{
+			graph:     graph,
+			state:     []map[int]bool{{0: true, 1: true}, {2: true, 3: true}},
+			vMoveProb: 1,
+			seed:      1,
+		}, args{20}, 2400},
+		{"test2", fields{
+			graph:     graph,
+			state:     []map[int]bool{{0: true, 3: true}, {1: true, 2: true}},
+			vMoveProb: 1,
+			seed:      1,
+		}, args{10}, 1200},
+		{"test3", fields{
+			graph:     graph,
+			state:     []map[int]bool{{0: true, 1: true, 3: true}, {2: true}},
+			vMoveProb: 1,
+			seed:      1,
+		}, args{20}, 3000},
+		{"test4", fields{
+			graph:     graph,
+			state:     []map[int]bool{{0: true, 1: true, 2: true}, {3: true}},
+			vMoveProb: 1,
+			seed:      1,
+		}, args{30}, 3900},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			self := NewPartitionState(tt.fields.graph, tt.fields.state, tt.fields.vMoveProb, tt.fields.seed)
+			if got := self.getMaxMergeTime(tt.args.lookahead); got != tt.want {
+				t.Errorf("getMaxMergeTime() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

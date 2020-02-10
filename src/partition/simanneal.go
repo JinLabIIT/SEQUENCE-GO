@@ -7,7 +7,7 @@ import (
 )
 
 type EdgeAttribute struct {
-	load      int64 // edge does not exist if load == 0
+	weight    int64 // edge does not exist if weight == 0
 	ratio     float64
 	lookAhead int64
 }
@@ -87,11 +87,58 @@ func (self *PartitionState) Energy() float64 {
 }
 
 func (self *PartitionState) getMaxExeTime(lookahead float64) float64 {
-	return 0
+	maxWeight := float64(0)
+	for i := range self.state {
+		totalWeight := float64(0)
+		for nodeId := range self.state[i] {
+			// from nodeId to others
+			for _, edge := range self.graph[nodeId] {
+				totalWeight += float64(edge.weight)
+			}
+			// from others to nodeId
+			for j := range self.graph {
+				totalWeight += float64(self.graph[j][nodeId].weight) * self.graph[j][nodeId].ratio
+			}
+		}
+		maxWeight = maxfloat64(maxWeight, totalWeight)
+	}
+
+	return getExeTime(maxWeight, lookahead)
 }
 
 func (self *PartitionState) getMaxMergeTime(lookahead float64) float64 {
-	return 0
+	maxMergeTime := float64(0)
+	for _, state := range self.state {
+		totalWeight := float64(0)
+		ids := make(map[int]bool, 0)
+		for nodeId := range state {
+			// from nodeId to others
+			for _, edge := range self.graph[nodeId] {
+				totalWeight += float64(edge.weight)
+			}
+			// from others to nodeId
+			for j := range self.graph {
+				totalWeight += float64(self.graph[j][nodeId].weight) * self.graph[j][nodeId].ratio
+				_, exist := state[j]
+				if self.graph[j][nodeId].weight > 0 && !exist {
+					ids[j] = true
+				}
+			}
+		}
+		outNum := 0
+		for _, st := range self.state {
+			for id, _ := range ids {
+				_, exist := st[id]
+				if exist {
+					outNum += 1
+					break
+				}
+			}
+		}
+		mergeTime := getMergeTime(totalWeight, outNum, lookahead)
+		maxMergeTime = maxfloat64(maxMergeTime, mergeTime)
+	}
+	return maxMergeTime
 }
 
 func (self *PartitionState) getLookAhead() float64 {
@@ -100,7 +147,7 @@ func (self *PartitionState) getLookAhead() float64 {
 
 	for i := 0; i < len(self.graph); i++ {
 		for j := 0; j < len(self.graph); j++ {
-			if self.graph[i][j].load != 0 {
+			if self.graph[i][j].weight != 0 {
 				// exist edge
 				if !self.twoNodesBelongSameSet(i, j) {
 					lookahead = min(lookahead, self.graph[i][j].lookAhead)
@@ -135,8 +182,26 @@ func getElementByIndex(targetSet map[int]bool, index int) int {
 	return keys[index]
 }
 
+func getExeTime(weight float64, lookahead float64) float64 {
+	k := 1.0
+	b := 0.0
+	return k*weight*lookahead + b
+}
+
+func getMergeTime(weight float64, outNum int, lookahead float64) float64 {
+	return math.Ceil(math.Log2(float64(outNum+1))) * weight * lookahead
+}
+
 func min(a, b int64) int64 {
 	if a < b {
+		return a
+	} else {
+		return b
+	}
+}
+
+func maxfloat64(a, b float64) float64 {
+	if a > b {
 		return a
 	} else {
 		return b
