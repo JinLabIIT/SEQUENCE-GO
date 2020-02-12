@@ -207,8 +207,6 @@ func getExeTime(weight float64, lookahead float64) float64 {
 	// nano second
 	k := 6881.0
 	b := 4536000.0
-	x := k*weight*lookahead + b
-	x = x
 	return k*weight*lookahead + b
 }
 
@@ -217,8 +215,6 @@ func getMergeTime(weight float64, outNum int, lookahead float64) float64 {
 	a0 := -1418000.0
 	a1 := 101.5
 	a2 := -233.3
-	x := maxfloat64(a0+a1*math.Ceil(math.Log2(float64(outNum+1)))*weight*lookahead+a2*weight*lookahead, 0)
-	x = x
 	return maxfloat64(a0+a1*math.Ceil(math.Log2(float64(outNum+1)))*weight*lookahead+a2*weight*lookahead, 0)
 }
 
