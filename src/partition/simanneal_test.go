@@ -74,12 +74,26 @@ func TestPartitionState_Move(t *testing.T) {
 			vMoveProb: 1.0,
 			seed:      int64(1),
 		}, []map[int]bool{{}, {1: true}, {}}},
+		{"vertexExchange1", fields{
+			graph:     [][]EdgeAttribute{{ea, ea, ea}, {ea, ea, ea}, {ea, ea, ea}},
+			state:     []map[int]bool{{1: true, 5: true}, {2: true, 6: true}, {3: true, 4: true}},
+			vMoveProb: 0,
+			seed:      int64(1),
+		}, []map[int]bool{{1: true, 4: true}, {2: true, 6: true}, {3: true, 5: true}}},
+		{"vertexExchange2", fields{
+			graph:     [][]EdgeAttribute{{ea, ea, ea}, {ea, ea, ea}, {ea, ea, ea}},
+			state:     []map[int]bool{{1: true, 5: true}, {2: true, 6: true}, {}, {}, {}, {3: true, 4: true}},
+			vMoveProb: 0,
+			seed:      int64(1),
+		}, []map[int]bool{{1: true, 4: true}, {2: true, 6: true}, {}, {}, {}, {3: true, 5: true}}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			self := NewPartitionState(tt.fields.graph, tt.fields.state, tt.fields.vMoveProb, tt.fields.seed)
 			self.Move()
-			reflect.DeepEqual(self.State, tt.want)
+			if !reflect.DeepEqual(self.State, tt.want) {
+				t.Errorf("Move() = %v, want %v", self.State, tt.want)
+			}
 		})
 	}
 }

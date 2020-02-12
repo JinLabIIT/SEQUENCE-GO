@@ -7,7 +7,7 @@ import (
 )
 
 type EdgeAttribute struct {
-	Weight    int64 // edge does not exist if Weight == 0
+	Weight    float64 // edge does not exist if Weight == 0
 	Ratio     float64
 	LookAhead int64
 }
@@ -77,12 +77,34 @@ func (self *PartitionState) Move() {
 		self.State[dstIndex][element] = true
 	} else {
 		// exchange two nodes from different subsets
+		validSets := []int{}
+		for i, state := range self.State {
+			if len(state) > 0 {
+				validSets = append(validSets, i)
+			}
+		}
+		if len(validSets) < 2 {
+			return
+		}
+		setId1 := validSets[self.rng.Intn(len(validSets))]
+		validSets = append(validSets[:setId1], validSets[setId1+1:]...)
+		setId2 := validSets[self.rng.Intn(len(validSets))]
+		eIndex1 := self.rng.Intn(len(self.State[setId1]))
+		eIndex2 := self.rng.Intn(len(self.State[setId2]))
+		key1 := getElementByIndex(self.State[setId1], eIndex1)
+		key2 := getElementByIndex(self.State[setId2], eIndex2)
+		//swap
+		delete(self.State[setId1], key1)
+		delete(self.State[setId2], key2)
+
+		self.State[setId1][key2] = true
+		self.State[setId2][key1] = true
 	}
 }
 
 func (self *PartitionState) Energy() float64 {
 	lookahead := self.getLookAhead()
-	return (self.getMaxExeTime(lookahead) + self.getMaxMergeTime(lookahead)) * (1 / lookahead)
+	return (self.getMaxExeTime(lookahead) + self.getMaxMergeTime(lookahead)) * (1e10 / lookahead)
 }
 
 func (self *PartitionState) getMaxExeTime(lookahead float64) float64 {
@@ -182,15 +204,22 @@ func getElementByIndex(targetSet map[int]bool, index int) int {
 }
 
 func getExeTime(weight float64, lookahead float64) float64 {
-	k := 1.0
-	b := 0.0
+	// nano second
+	k := 6881.0
+	b := 4536000.0
+	x := k*weight*lookahead + b
+	x = x
 	return k*weight*lookahead + b
 }
 
 func getMergeTime(weight float64, outNum int, lookahead float64) float64 {
-	k := 1.0
-	b := 0.0
-	return k*math.Ceil(math.Log2(float64(outNum+1)))*weight*lookahead + b
+	// nano second
+	a0 := -1418000.0
+	a1 := 101.5
+	a2 := -233.3
+	x := maxfloat64(a0+a1*math.Ceil(math.Log2(float64(outNum+1)))*weight*lookahead+a2*weight*lookahead, 0)
+	x = x
+	return maxfloat64(a0+a1*math.Ceil(math.Log2(float64(outNum+1)))*weight*lookahead+a2*weight*lookahead, 0)
 }
 
 func min(a, b int64) int64 {
