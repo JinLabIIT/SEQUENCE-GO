@@ -155,7 +155,7 @@ func (qsd *qsd) get(message kernel.Message) {
 	}
 }
 
-func MakeStateList() *Basis {
+/*func MakeStateList() *Basis {
 	numPulses := 10000
 	basisList := choice([]int{0, 1}, numPulses)
 	bitList := choice([]int{0, 1}, numPulses)
@@ -167,7 +167,7 @@ func MakeStateList() *Basis {
 		stateList[i] = state
 	}
 	return &stateList
-}
+}*/
 
 func addFunction(n int, wg *sync.WaitGroup) {
 	result := 0

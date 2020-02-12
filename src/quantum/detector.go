@@ -1,9 +1,9 @@
 package quantum
 
 import (
+	rng "github.com/leesper/go_rng"
 	"kernel"
 	"math"
-	"math/rand"
 )
 
 type Detector struct {
@@ -17,6 +17,8 @@ type Detector struct {
 	nextDetectionTime uint64
 	photonCounter     int
 	on                bool
+	rng               *rng.UniformGenerator
+	exp               *rng.ExpGenerator
 }
 
 //
@@ -34,6 +36,8 @@ type Detector struct {
 //}
 
 func (d *Detector) init() {
+	d.rng = rng.NewUniformGenerator(123)
+	d.exp = rng.NewExpGenerator(123)
 	d.on = true
 	d.addDarkCount(kernel.Message{})
 }
@@ -42,7 +46,7 @@ func (d *Detector) get(message kernel.Message) {
 	darkGet := message["darkGet"].(bool)
 	d.photonCounter += 1
 	now := d.timeline.Now()
-	if (rand.Float64() < d.efficiency || darkGet) || (now > d.nextDetectionTime) {
+	if (d.rng.Float64() < d.efficiency || darkGet) || (now > d.nextDetectionTime) {
 		time := (now / d.timeResolution) * d.timeResolution
 		d.photonTimes = append(d.photonTimes, time)
 		d.nextDetectionTime = now + uint64(math.Pow10(12)/d.countRate)
@@ -54,7 +58,7 @@ func (d *Detector) addDarkCount(message kernel.Message) {
 		return
 	}
 	if d.on {
-		timeToNext := uint64(rand.ExpFloat64()/d.darkCount) * uint64(math.Pow10(12))
+		timeToNext := uint64(d.exp.Exp(1.0/d.darkCount)) * uint64(math.Pow10(12))
 		time := timeToNext + d.timeline.Now()
 		message1 := kernel.Message{}
 		process1 := kernel.Process{Fnptr: d.addDarkCount, Message: message1, Owner: d.timeline}

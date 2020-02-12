@@ -1,9 +1,9 @@
 package quantum
 
 import (
+	rng "github.com/leesper/go_rng"
 	"kernel"
 	"math"
-	"math/rand"
 )
 
 type QuantumChannel struct {
@@ -14,6 +14,11 @@ type QuantumChannel struct {
 	receiver      *QSDetector //tmp
 	depoCount     int
 	photonCounter int
+	rng           *rng.UniformGenerator
+}
+
+func (qc *QuantumChannel) init() {
+	qc.rng = rng.NewUniformGenerator(123)
 }
 
 func (qc *QuantumChannel) setSender(sender *LightSource) {
@@ -28,10 +33,10 @@ func (qc *QuantumChannel) get(photon *Photon) {
 	loss := qc.distance * qc.attenuation
 	chancePhotonKept := math.Pow(10, loss/-10)
 	// check if photon kept
-	if rand.Float64() < chancePhotonKept { // numpy.random.random_sample()
+	if qc.rng.Float64() < chancePhotonKept { // numpy.random.random_sample()
 		qc.photonCounter += 1
-		if rand.Float64() > qc.polarizationFidelity && photon.encodingType["name"] == "polarization" {
-			photon.randomNoise()
+		if qc.rng.Float64() > qc.polarizationFidelity && photon.encodingType["name"] == "polarization" {
+			photon.randomNoise(qc.rng.Float64())
 			qc.depoCount += 1
 		}
 		futureTime := qc.timeline.Now() + uint64(math.Round(qc.distance/qc.lightSpeed))

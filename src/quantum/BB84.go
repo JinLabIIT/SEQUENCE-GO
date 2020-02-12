@@ -6,7 +6,6 @@ import (
 	"golang.org/x/exp/errors/fmt"
 	"kernel"
 	"math"
-	"math/rand"
 	"strconv"
 	"strings"
 )
@@ -40,9 +39,11 @@ type BB84 struct {
 	errorRates     []float64
 	timeline       *kernel.Timeline
 	role           int
+	rng            *rng.UniformGenerator
 }
 
 func (bb84 *BB84) _init() {
+	bb84.rng = rng.NewUniformGenerator(123)
 	bb84.ready = true
 	if bb84.sourceName == "" {
 		bb84.sourceName = "lightSource"
@@ -73,7 +74,7 @@ func (bb84 *BB84) delParent() {
 
 func (bb84 *BB84) setBases() {
 	numPulses := int(math.Round(bb84.lightTime * bb84.qubitFrequency))
-	basisList := choice([]int{0, 1}, numPulses) //create an numPulses length array and the element is randomly chosen between 1 and 0
+	basisList := choice([]int{0, 1}, numPulses, bb84.rng) //create an numPulses length array and the element is randomly chosen between 1 and 0
 	bb84.basisLists = append(bb84.basisLists, basisList)
 	bb84.node.setBases(basisList, bb84.startTime, bb84.qubitFrequency, bb84.detectorName)
 }
@@ -83,8 +84,8 @@ func (bb84 *BB84) beginPhotonPulse(message kernel.Message) {
 	if bb84.working && bb84.timeline.Now() < bb84.endRunTimes[0] {
 		// generate basis/bit list
 		numPulses := int(math.Round(bb84.lightTime * bb84.qubitFrequency))
-		basisList := choice([]int{0, 1}, numPulses)
-		bitList := choice([]int{0, 1}, numPulses)
+		basisList := choice([]int{0, 1}, numPulses, bb84.rng)
+		bitList := choice([]int{0, 1}, numPulses, bb84.rng)
 		// emit photons
 		bb84.node.sendQubits(basisList, bitList, bb84.sourceName)
 		bb84.basisLists = append(bb84.basisLists, basisList)
@@ -358,7 +359,6 @@ func (parent *Parent) getKeyFromBB84(key []uint64) {
 
 func test() {
 	seed := int64(156)
-	rand.Seed(seed)
 	fmt.Println("Polarization:")
 	poisson := rng.NewPoissonGenerator(seed)
 	tl := kernel.Timeline{Name: "timeline", LookAhead: math.MaxInt64}

@@ -1,8 +1,8 @@
 package quantum
 
 import (
+	rng "github.com/leesper/go_rng"
 	"math/cmplx"
-	"math/rand"
 	"strconv"
 	"strings"
 )
@@ -133,10 +133,11 @@ func arrayConj(arr []complex128) []complex128 {
 	return arr
 }
 
-func choice(array []int, n int) []int {
+func choice(array []int, n int, rng *rng.UniformGenerator) []int {
+
 	result := make([]int, n)
 	for i := 0; i < n; i++ {
-		result[i] = array[rand.Intn(len(array))]
+		result[i] = array[int(rng.Int32n(int32(len(array))))]
 	}
 	return result
 }

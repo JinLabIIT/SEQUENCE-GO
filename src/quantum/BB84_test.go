@@ -2,6 +2,7 @@ package quantum
 
 import (
 	"fmt"
+	"src/github.com/pkg/profile"
 	"testing"
 )
 
@@ -62,7 +63,7 @@ import (
 
 func Test(t *testing.T) {
 	fmt.Println("start test")
-	test()
+	//test()
 	fmt.Println("test finished")
 }
 
@@ -73,9 +74,14 @@ func Test2(t *testing.T) {
 }
 
 func Test3(t *testing.T) {
-	main(64, 4, 50000000)
+	defer profile.Start().Stop()
+	Main(64, 4, 50000000)
 }
 
 /*func Test123(t *testing.T){
-	t1()
+	go testxxx()
+	go testxxx()
+	go testxxx()
+	testxxx()
+	println("Done")
 }*/
