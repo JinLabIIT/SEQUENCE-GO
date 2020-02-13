@@ -13,7 +13,7 @@ d = 2
 p = d/(n-1)
 G = random_graphs.fast_gnp_random_graph(n,p,directed = True)
 nx.drawing.nx_pylab.draw(G)
-path = "/Users/cheung/Desktop/test.json"
+path = "1.json"
 #nx.write_graph(G,path)
 nx.drawing.nx_pylab.draw(G)
 

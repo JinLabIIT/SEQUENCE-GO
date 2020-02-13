@@ -6,11 +6,29 @@ import (
 	"golang.org/x/exp/rand"
 	"io/ioutil"
 	"kernel"
-	"math"
 	"os"
 )
 
-func ringSep2(threadNum int, lookAhead uint64, path string) {
+func randGraph(threadNum int, lookAhead uint64, path string) {
+	SEED := uint64(0)
+	SIM_TIME := 1e10
+
+	ATTENUATION := 0.0002
+	QCFIDELITY := 0.99
+	DISTANCE := 1e4
+	LIGHTSPEED := 2e-4
+	LIGHTSOURCE_FREQUENCY := 8e7
+	LIGHTSOURCE_MEAN := 0.1
+	CCDELAY := 1e9
+
+	WAVELEN := 1550.0
+	DETECTOR_EFFICIENCY := 0.8
+	DARKCOUNT := 0.0
+	TIME_RESOLUTION := uint64(10)
+	COUNT_RATE := 5e7
+
+	KEYSIZE := 512
+
 	jsonFile, err := os.Open(path)
 	if err != nil {
 		fmt.Println(err)
@@ -23,25 +41,31 @@ func ringSep2(threadNum int, lookAhead uint64, path string) {
 	nodesGraph := result["nodes"].([]interface{})
 	n := len(nodesGraph)
 	links := result["links"].([]interface{}) // links: {source: int,target: int}
+
 	fmt.Println("n: ", n, "threadNum: ", threadNum, "lookAhead:", lookAhead)
+
+	rand.Seed(SEED)
+
 	tls := make([]*kernel.Timeline, threadNum)
 	for i := 0; i < threadNum; i++ {
 		tlName := fmt.Sprint("timeline", i)
 		tl := kernel.Timeline{Name: tlName}
-		tl.Init(lookAhead, uint64(math.Pow10(10))) // 10 ms
+		tl.Init(lookAhead, uint64(SIM_TIME)) // 10 ms
 		tls[i] = &tl
 	}
 
 	// create nodes
 	totalNodes := n
 	nodes := make([]*Node, totalNodes)
-
-	for i := 0; i < totalNodes; i++ {
-		nodeName := fmt.Sprint("node", i)
-		node := Node{name: nodeName, timeline: tls[rand.Intn(threadNum)]}
-		node.cchannels = make(map[string]*ClassicalChannel)
-		node.components = make(map[string]interface{})
-		nodes[i] = &node
+	plan := randomSchedule(threadNum, n)
+	for threadId := range plan {
+		for _, nodeId := range plan[threadId] {
+			nodeName := fmt.Sprint("node", nodeId)
+			node := Node{name: nodeName, timeline: tls[threadId]}
+			node.cchannels = make(map[string]*ClassicalChannel)
+			node.components = make(map[string]interface{})
+			nodes[nodeId] = &node
+		}
 	}
 
 	// create classical channels
@@ -49,15 +73,15 @@ func ringSep2(threadNum int, lookAhead uint64, path string) {
 	for _, v := range links {
 		source := int(v.(map[string]interface{})["source"].(float64))
 		target := int(v.(map[string]interface{})["target"].(float64))
-		op := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, distance: 10 * math.Pow10(3), lightSpeed: 2 * math.Pow10(-4)}
+		op := OpticalChannel{polarizationFidelity: QCFIDELITY, attenuation: ATTENUATION, distance: DISTANCE, lightSpeed: LIGHTSPEED}
 		ccName := fmt.Sprint("cc_", nodes[source].name, "_", nodes[target].name)
-		cc := &ClassicalChannel{name: ccName, OpticalChannel: op, delay: 1 * math.Pow10(9)}
+		cc := &ClassicalChannel{name: ccName, OpticalChannel: op, delay: CCDELAY}
 		cc.SetSender(nodes[source])
 		cc.SetReceiver(nodes[target])
 		nodes[source].assignCChannel(cc)
 
 		ccName = fmt.Sprint("cc_", nodes[target].name, "_", nodes[source].name)
-		cc = &ClassicalChannel{name: ccName, OpticalChannel: op, delay: 1 * math.Pow10(9)}
+		cc = &ClassicalChannel{name: ccName, OpticalChannel: op, delay: CCDELAY}
 		cc.SetSender(nodes[target])
 		cc.SetReceiver(nodes[source])
 		nodes[target].assignCChannel(cc)
@@ -67,15 +91,15 @@ func ringSep2(threadNum int, lookAhead uint64, path string) {
 	for _, v := range links {
 		source := int(v.(map[string]interface{})["source"].(float64))
 		target := int(v.(map[string]interface{})["target"].(float64))
-		op := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, distance: 10 * math.Pow10(3), lightSpeed: 2 * math.Pow10(-4)}
+		op := OpticalChannel{polarizationFidelity: QCFIDELITY, attenuation: ATTENUATION, distance: DISTANCE, lightSpeed: LIGHTSPEED}
 		qcName := fmt.Sprint("qc_", nodes[source].name, "_", nodes[target].name)
 		qc := QuantumChannel{name: qcName, timeline: nodes[source].timeline, OpticalChannel: op}
 		qc.init()
 		lsName := fmt.Sprint(nodes[source].name, ".lightsource")
-		ls := LightSource{name: lsName, timeline: nodes[source].timeline, frequency: 80 * math.Pow10(6), meanPhotonNum: 0.1, directReceiver: &qc, wavelength: 1550, encodingType: polarization()}
+		ls := LightSource{name: lsName, timeline: nodes[source].timeline, frequency: LIGHTSOURCE_FREQUENCY, meanPhotonNum: LIGHTSOURCE_MEAN, directReceiver: &qc, wavelength: WAVELEN, encodingType: polarization()}
 		ls.init()
 		qc.setSender(&ls)
-		detectors := []*Detector{{efficiency: 0.8, darkCount: 0, timeResolution: 10, countRate: 50 * math.Pow10(6)}, {efficiency: 0.8, darkCount: 0, timeResolution: 10, countRate: 50 * math.Pow10(6)}}
+		detectors := []*Detector{{efficiency: DETECTOR_EFFICIENCY, darkCount: DARKCOUNT, timeResolution: TIME_RESOLUTION, countRate: COUNT_RATE}, {efficiency: DETECTOR_EFFICIENCY, darkCount: DARKCOUNT, timeResolution: TIME_RESOLUTION, countRate: COUNT_RATE}}
 		qsdName := fmt.Sprint(nodes[target].name, ".qsdetector")
 		qsd := QSDetector{name: qsdName, timeline: nodes[target].timeline, detectors: detectors}
 		qc.setReceiver(&qsd)
@@ -96,14 +120,14 @@ func ringSep2(threadNum int, lookAhead uint64, path string) {
 		bbb := BB84{name: bbName, timeline: nodes[target].timeline, role: 1} //bob.role = 1
 		bba._init()
 		bbb._init()
-		bba.assignNode(nodes[source], 1*math.Pow10(9), 50000000)
-		bbb.assignNode(nodes[target], 1*math.Pow10(9), 50000000)
+		bba.assignNode(nodes[source], CCDELAY, int(DISTANCE/LIGHTSPEED))
+		bbb.assignNode(nodes[target], CCDELAY, int(DISTANCE/LIGHTSPEED))
 		bba.another = &bbb
 		bbb.another = &bba
 		// TODO: assign protocols to nodes
-		pa := Parent{keySize: 512, role: "alice"}
+		pa := Parent{keySize: KEYSIZE, role: "alice"}
 		parent_protocols = append(parent_protocols, &pa)
-		pb := Parent{keySize: 512, role: "bob"}
+		pb := Parent{keySize: KEYSIZE, role: "bob"}
 		pa.child = &bba
 		pb.child = &bbb
 		bba.addParent(&pa)
@@ -137,4 +161,18 @@ func ringSep2(threadNum int, lookAhead uint64, path string) {
 	fmt.Println("sync counter:", tls[0].SyncCounter)
 	fmt.Println("end time", tls[0].Now())
 	//WriteFile(tls[0].FuncTime)
+}
+
+func randomSchedule(threadNum, nodeNum int) [][]int {
+	plan := make([][]int, threadNum)
+	for i := 0; i < threadNum; i++ {
+		plan[i] = make([]int, 0)
+	}
+	for i := 0; i < nodeNum; i++ {
+		thread_id := rand.Intn(threadNum)
+		plan[thread_id] = append(plan[thread_id], i)
+	}
+
+	fmt.Println(plan)
+	return plan
 }
