@@ -3,21 +3,22 @@ package quantum
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/matsulib/goanneal"
 	"golang.org/x/exp/rand"
 	"io/ioutil"
 	"kernel"
+	"math"
 	"os"
+	"partition"
 )
 
-func randGraph(threadNum int, lookAhead uint64, path string) {
+func randGraph(threadNum int, filename string, optimized bool) {
 	SEED := uint64(0)
-	SIM_TIME := 1e10
+	SIM_TIME := 2e10
 
 	ATTENUATION := 0.0002
 	QCFIDELITY := 0.99
-	DISTANCE := 1e4
-	LIGHTSPEED := 2e-4
-	LIGHTSOURCE_FREQUENCY := 8e7
+	LIGHTSPEED := 4e-4
 	LIGHTSOURCE_MEAN := 0.1
 	CCDELAY := 1e9
 
@@ -29,7 +30,7 @@ func randGraph(threadNum int, lookAhead uint64, path string) {
 
 	KEYSIZE := 512
 
-	jsonFile, err := os.Open(path)
+	jsonFile, err := os.Open(filename)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -42,7 +43,15 @@ func randGraph(threadNum int, lookAhead uint64, path string) {
 	n := len(nodesGraph)
 	links := result["links"].([]interface{}) // links: {source: int,target: int}
 
-	fmt.Println("n: ", n, "threadNum: ", threadNum, "lookAhead:", lookAhead)
+	randomLinks := randomAttributes(links)
+	graph := createGraph(n, randomLinks, LIGHTSOURCE_MEAN, ATTENUATION, LIGHTSPEED)
+
+	plan, lookAhead := randomSchedule(threadNum, graph)
+	if optimized {
+		plan, lookAhead = optimization(graph, plan)
+	}
+
+	//fmt.Println("n: ", n, "threadNum: ", threadNum, "lookAhead:", lookAhead)
 
 	rand.Seed(SEED)
 
@@ -50,16 +59,16 @@ func randGraph(threadNum int, lookAhead uint64, path string) {
 	for i := 0; i < threadNum; i++ {
 		tlName := fmt.Sprint("timeline", i)
 		tl := kernel.Timeline{Name: tlName}
-		tl.Init(lookAhead, uint64(SIM_TIME)) // 10 ms
+		tl.Init(uint64(lookAhead), uint64(SIM_TIME)) // 10 ms
 		tls[i] = &tl
 	}
 
 	// create nodes
+
 	totalNodes := n
 	nodes := make([]*Node, totalNodes)
-	plan := randomSchedule(threadNum, n)
 	for threadId := range plan {
-		for _, nodeId := range plan[threadId] {
+		for nodeId := range plan[threadId] {
 			nodeName := fmt.Sprint("node", nodeId)
 			node := Node{name: nodeName, timeline: tls[threadId]}
 			node.cchannels = make(map[string]*ClassicalChannel)
@@ -70,10 +79,10 @@ func randGraph(threadNum int, lookAhead uint64, path string) {
 
 	// create classical channels
 
-	for _, v := range links {
-		source := int(v.(map[string]interface{})["source"].(float64))
-		target := int(v.(map[string]interface{})["target"].(float64))
-		op := OpticalChannel{polarizationFidelity: QCFIDELITY, attenuation: ATTENUATION, distance: DISTANCE, lightSpeed: LIGHTSPEED}
+	for _, link := range randomLinks {
+		source := link.source
+		target := link.target
+		op := OpticalChannel{polarizationFidelity: QCFIDELITY, attenuation: ATTENUATION, distance: link.distance, lightSpeed: LIGHTSPEED}
 		ccName := fmt.Sprint("cc_", nodes[source].name, "_", nodes[target].name)
 		cc := &ClassicalChannel{name: ccName, OpticalChannel: op, delay: CCDELAY}
 		cc.SetSender(nodes[source])
@@ -88,15 +97,15 @@ func randGraph(threadNum int, lookAhead uint64, path string) {
 	}
 
 	// create light source, detector and quantum channels
-	for _, v := range links {
-		source := int(v.(map[string]interface{})["source"].(float64))
-		target := int(v.(map[string]interface{})["target"].(float64))
-		op := OpticalChannel{polarizationFidelity: QCFIDELITY, attenuation: ATTENUATION, distance: DISTANCE, lightSpeed: LIGHTSPEED}
+	for _, link := range randomLinks {
+		source := link.source
+		target := link.target
+		op := OpticalChannel{polarizationFidelity: QCFIDELITY, attenuation: ATTENUATION, distance: link.distance, lightSpeed: LIGHTSPEED}
 		qcName := fmt.Sprint("qc_", nodes[source].name, "_", nodes[target].name)
 		qc := QuantumChannel{name: qcName, timeline: nodes[source].timeline, OpticalChannel: op}
 		qc.init()
 		lsName := fmt.Sprint(nodes[source].name, ".lightsource")
-		ls := LightSource{name: lsName, timeline: nodes[source].timeline, frequency: LIGHTSOURCE_FREQUENCY, meanPhotonNum: LIGHTSOURCE_MEAN, directReceiver: &qc, wavelength: WAVELEN, encodingType: polarization()}
+		ls := LightSource{name: lsName, timeline: nodes[source].timeline, frequency: link.frequency, meanPhotonNum: LIGHTSOURCE_MEAN, directReceiver: &qc, wavelength: WAVELEN, encodingType: polarization()}
 		ls.init()
 		qc.setSender(&ls)
 		detectors := []*Detector{{efficiency: DETECTOR_EFFICIENCY, darkCount: DARKCOUNT, timeResolution: TIME_RESOLUTION, countRate: COUNT_RATE}, {efficiency: DETECTOR_EFFICIENCY, darkCount: DARKCOUNT, timeResolution: TIME_RESOLUTION, countRate: COUNT_RATE}}
@@ -111,17 +120,17 @@ func randGraph(threadNum int, lookAhead uint64, path string) {
 
 	// create BB84
 	parent_protocols := make([]*Parent, 0)
-	for _, v := range links {
-		source := int(v.(map[string]interface{})["source"].(float64))
-		target := int(v.(map[string]interface{})["target"].(float64))
-		bbName := fmt.Sprint(nodes[source].name, ".bba")
+	for i, link := range randomLinks {
+		source := link.source
+		target := link.target
+		bbName := fmt.Sprint(nodes[source].name, ".bba.", i)
 		bba := BB84{name: bbName, timeline: nodes[source].timeline, role: 0} //alice.role = 0
-		bbName = fmt.Sprint(nodes[target].name, ".bbb")
+		bbName = fmt.Sprint(nodes[target].name, ".bbb.", i)
 		bbb := BB84{name: bbName, timeline: nodes[target].timeline, role: 1} //bob.role = 1
 		bba._init()
 		bbb._init()
-		bba.assignNode(nodes[source], CCDELAY, int(DISTANCE/LIGHTSPEED))
-		bbb.assignNode(nodes[target], CCDELAY, int(DISTANCE/LIGHTSPEED))
+		bba.assignNode(nodes[source], CCDELAY, int(link.distance/LIGHTSPEED))
+		bbb.assignNode(nodes[target], CCDELAY, int(link.distance/LIGHTSPEED))
 		bba.another = &bbb
 		bbb.another = &bba
 		// TODO: assign protocols to nodes
@@ -158,21 +167,83 @@ func randGraph(threadNum int, lookAhead uint64, path string) {
 		fmt.Println("   ", floats.Sum(parent_protocols[i].child.errorRates)/float64(len(parent_protocols[i].child.errorRates)))
 	}*/
 
-	fmt.Println("sync counter:", tls[0].SyncCounter)
-	fmt.Println("end time", tls[0].Now())
+	//fmt.Println("sync counter:", tls[0].SyncCounter)
+	//fmt.Println("end time", tls[0].Now())
 	//WriteFile(tls[0].FuncTime)
 }
 
-func randomSchedule(threadNum, nodeNum int) [][]int {
-	plan := make([][]int, threadNum)
-	for i := 0; i < threadNum; i++ {
-		plan[i] = make([]int, 0)
+type Link struct {
+	source    int
+	target    int
+	frequency float64
+	distance  float64
+}
+
+func randomAttributes(links []interface{}) []*Link {
+	FREQ_UPPER := 1e8
+	FREQ_LOWER := 1e6
+	DIST_UPPER := 15e3
+	DIST_LOWER := 5e3
+	res := []*Link{}
+	for _, link := range links {
+		source := int(link.(map[string]interface{})["source"].(float64))
+		target := int(link.(map[string]interface{})["target"].(float64))
+		frequency := float64(rand.Intn(int(FREQ_UPPER-FREQ_LOWER))) + FREQ_LOWER
+		distance := float64(rand.Intn(int(DIST_UPPER-DIST_LOWER))) + DIST_LOWER
+		res = append(res, &Link{
+			source:    source,
+			target:    target,
+			frequency: frequency,
+			distance:  distance,
+		})
 	}
-	for i := 0; i < nodeNum; i++ {
+	return res
+}
+
+func randomSchedule(threadNum int, graph [][]partition.EdgeAttribute) ([]map[int]bool, float64) {
+	plan := make([]map[int]bool, threadNum)
+	for i := 0; i < threadNum; i++ {
+		plan[i] = make(map[int]bool, 0)
+	}
+	for i := 0; i < len(graph); i++ {
 		thread_id := rand.Intn(threadNum)
-		plan[thread_id] = append(plan[thread_id], i)
+		plan[thread_id][i] = true
 	}
 
-	fmt.Println(plan)
-	return plan
+	pState := partition.NewPartitionState(graph, plan, 1, 1)
+
+	//fmt.Println(plan)
+	return plan, pState.GetLookAhead()
+}
+
+func optimization(graph [][]partition.EdgeAttribute, plan []map[int]bool) ([]map[int]bool, float64) {
+	pState := partition.NewPartitionState(graph, plan, 1, 1)
+	fmt.Println("initial plan: estimated exe time ", pState.Energy()/1e9, "sec")
+	tsp := goanneal.NewAnnealer(pState)
+	tsp.Steps = 100000
+	afterState, energy := tsp.Anneal()
+	//fmt.Println(afterState.(*partition.PartitionState).State)
+	fmt.Println("optimized plan: estimated exe time ", energy/1e9, "sec")
+	return afterState.(*partition.PartitionState).State, afterState.(*partition.PartitionState).GetLookAhead()
+}
+
+func createGraph(nodeNum int, links []*Link, mean, attenuation, lightspeed float64) [][]partition.EdgeAttribute {
+	graph := make([][]partition.EdgeAttribute, nodeNum)
+	for i := 0; i < nodeNum; i++ {
+		graph[i] = make([]partition.EdgeAttribute, nodeNum)
+	}
+
+	for _, link := range links {
+		source := link.source
+		target := link.target
+		weight := link.frequency * 1e-12 * mean
+		ratio := math.Pow(10, link.distance*attenuation/-10)
+		qcdelay := link.distance / lightspeed
+		graph[source][target] = partition.EdgeAttribute{
+			Weight:    weight,
+			Ratio:     ratio,
+			LookAhead: int64(qcdelay),
+		}
+	}
+	return graph
 }

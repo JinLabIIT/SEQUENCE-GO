@@ -147,6 +147,9 @@ func (bb84 *BB84) receivedMessage(message kernel.Message) {
 	if bb84.working && bb84.timeline.Now() < bb84.endRunTimes[0] {
 		message0 := strings.Split(message["message"].(string), " ")
 		if message0[0] == "beginPhotonPulse" {
+			if bb84.role != 1 {
+				return
+			}
 			//fmt.Println("beginPhotonPulse in received message " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
 			bb84.qubitFrequency, _ = strconv.ParseFloat(message0[1], 64)
 			bb84.lightTime, _ = strconv.ParseFloat(message0[2], 64)
@@ -166,12 +169,18 @@ func (bb84 *BB84) receivedMessage(message kernel.Message) {
 			event1 := kernel.Event{Time: bb84.startTime, Process: &process1, Priority: 0}
 			bb84.timeline.Schedule(&event1)
 		} else if message0[0] == "receivedQubits" {
+			if bb84.role != 0 {
+				return
+			}
 			//fmt.Println("receivedQubits " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
 			bases := bb84.basisLists[0]
 			bb84.basisLists = bb84.basisLists[1:]
 			bb84.node.sendMessage("basisList "+toString(bases), bb84.another.node.name) // need to do
 		} else if message0[0] == "basisList" {
-			//fmt.Println("basislist " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
+			if bb84.role != 1 {
+				return
+			}
+			//fmt.Println("basislist " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10), "from", message["src"])
 			basisListAlice := make([]int, 0, len(message0[1:]))
 			for _, basis := range message0[1:] {
 				value, _ := strconv.Atoi(basis)
@@ -198,8 +207,11 @@ func (bb84 *BB84) receivedMessage(message kernel.Message) {
 			}
 			bb84.node.sendMessage("matchingIndices "+toString(indices), bb84.another.node.name)
 		} else if message0[0] == "matchingIndices" {
-			//fmt.Println("matchingIndices " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
 			// need to do
+			if bb84.role != 0 {
+				return
+			}
+			// fmt.Println("matchingIndices " + bb84.name + " " + strconv.FormatUint(bb84.timeline.Now(), 10))
 			indices := make([]int, 0, len(message0[1:]))
 			if len(message0) != 1 { // no matching indices
 				for _, val := range message0[1:] {
@@ -330,7 +342,9 @@ func (bb84 *BB84) setKey() {
 		tmp := sliceToInt(keyBits, 2)
 		bb84.key[i] = tmp
 	}
-	bb84.keyBits = bb84.keyBits[bb84.combine*64:]
+	if len(bb84.keyBits) >= bb84.combine*64 {
+		bb84.keyBits = bb84.keyBits[bb84.combine*64:]
+	}
 	//bb84.key = sliceToInt(keyBits,2)//convert from binary list to int
 }
 

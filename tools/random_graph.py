@@ -11,12 +11,13 @@ import json
 n = 64
 d = 2
 p = d/(n-1)
-G = random_graphs.fast_gnp_random_graph(n,p,directed = True)
-nx.drawing.nx_pylab.draw(G)
-path = "1.json"
-#nx.write_graph(G,path)
-nx.drawing.nx_pylab.draw(G)
+for seed in range(5):
+    G = random_graphs.fast_gnp_random_graph(n,p,seed=seed, directed = True)
+    nx.drawing.nx_pylab.draw(G)
+    path = "%d.json" % seed
+    #nx.write_graph(G,path)
+    nx.drawing.nx_pylab.draw(G)
 
-data = nx.readwrite.json_graph.node_link_data(G)
-with open(path, 'w') as f:
-    json.dump(data, f)
+    data = nx.readwrite.json_graph.node_link_data(G)
+    with open(path, 'w') as f:
+        json.dump(data, f)

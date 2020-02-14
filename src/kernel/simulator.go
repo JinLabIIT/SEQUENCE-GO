@@ -3,9 +3,11 @@ package kernel
 import (
 	"fmt"
 	"sync"
+	"time"
 )
 
 func Run(timelineList []*Timeline) {
+	tick := time.Now()
 	br := Barrier{}
 	br.n = len(timelineList)
 	br.Init()
@@ -19,7 +21,9 @@ func Run(timelineList []*Timeline) {
 		go timeline.run(&br, &wg)
 	}
 	wg.Wait()
-	timelineReport(timelineList)
+	elapsed := time.Since(tick)
+	fmt.Println("            Real execution time: ", elapsed)
+	//timelineReport(timelineList)
 }
 
 func timelineReport(timelineList []*Timeline) {

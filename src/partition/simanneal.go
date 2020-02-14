@@ -103,7 +103,7 @@ func (self *PartitionState) Move() {
 }
 
 func (self *PartitionState) Energy() float64 {
-	lookahead := self.getLookAhead()
+	lookahead := self.GetLookAhead()
 	return (self.getMaxExeTime(lookahead) + self.getMaxMergeTime(lookahead)) * (1e10 / lookahead)
 }
 
@@ -162,7 +162,7 @@ func (self *PartitionState) getMaxMergeTime(lookahead float64) float64 {
 	return maxMergeTime
 }
 
-func (self *PartitionState) getLookAhead() float64 {
+func (self *PartitionState) GetLookAhead() float64 {
 	var lookahead int64
 	lookahead = math.MaxInt64
 

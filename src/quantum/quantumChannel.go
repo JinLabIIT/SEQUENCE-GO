@@ -41,7 +41,7 @@ func (qc *QuantumChannel) get(photon *Photon) {
 		}
 		futureTime := qc.timeline.Now() + uint64(math.Round(qc.distance/qc.lightSpeed))
 		message := kernel.Message{"photon": photon}
-		process := kernel.Process{Fnptr: qc.receiver.get, Message: message, Owner: qc.timeline}
+		process := kernel.Process{Fnptr: qc.receiver.get, Message: message, Owner: qc.receiver.timeline}
 		event := kernel.Event{Time: futureTime, Process: &process, Priority: 0}
 		qc.timeline.Schedule(&event)
 	}

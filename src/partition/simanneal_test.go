@@ -256,8 +256,8 @@ func TestPartitionState_getLookAhead(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			self := NewPartitionState(tt.fields.graph, tt.fields.state, tt.fields.vMoveProb, tt.fields.seed)
-			if got := self.getLookAhead(); got != tt.want {
-				t.Errorf("getLookAhead() = %v, want %v", got, tt.want)
+			if got := self.GetLookAhead(); got != tt.want {
+				t.Errorf("GetLookAhead() = %v, want %v", got, tt.want)
 			}
 		})
 	}
