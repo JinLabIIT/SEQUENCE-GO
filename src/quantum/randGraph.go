@@ -3,7 +3,6 @@ package quantum
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gonum/floats"
 	"github.com/matsulib/goanneal"
 	"golang.org/x/exp/rand"
 	"io/ioutil"
@@ -47,9 +46,10 @@ func randGraph(threadNum int, filename string, optimized bool) {
 	randomLinks := randomAttributes(links)
 	graph := createGraph(n, randomLinks, LIGHTSOURCE_MEAN, ATTENUATION, LIGHTSPEED)
 
-	plan, lookAhead := randomSchedule(threadNum, graph)
+	plan, lookAhead := randomSchedule(threadNum, graph, SIM_TIME)
+	//fmt.Println(plan, lookAhead)
 	if optimized {
-		plan, lookAhead = optimization(graph, plan)
+		plan, lookAhead = optimization(graph, plan, SIM_TIME)
 	}
 
 	//fmt.Println("n: ", n, "threadNum: ", threadNum, "lookAhead:", lookAhead)
@@ -210,7 +210,7 @@ func randomAttributes(links []interface{}) []*Link {
 	return res
 }
 
-func randomSchedule(threadNum int, graph [][]partition.EdgeAttribute) ([]map[int]bool, float64) {
+func randomSchedule(threadNum int, graph [][]partition.EdgeAttribute, simTime float64) ([]map[int]bool, float64) {
 	plan := make([]map[int]bool, threadNum)
 	for i := 0; i < threadNum; i++ {
 		plan[i] = make(map[int]bool, 0)
@@ -220,14 +220,14 @@ func randomSchedule(threadNum int, graph [][]partition.EdgeAttribute) ([]map[int
 		plan[thread_id][i] = true
 	}
 
-	pState := partition.NewPartitionState(graph, plan, 1, 1)
+	pState := partition.NewPartitionState(graph, plan, 1, simTime, 1)
 
 	//fmt.Println(plan)
 	return plan, pState.GetLookAhead()
 }
 
-func optimization(graph [][]partition.EdgeAttribute, plan []map[int]bool) ([]map[int]bool, float64) {
-	pState := partition.NewPartitionState(graph, plan, 1, 1)
+func optimization(graph [][]partition.EdgeAttribute, plan []map[int]bool, simTime float64) ([]map[int]bool, float64) {
+	pState := partition.NewPartitionState(graph, plan, 1, simTime, 1)
 	fmt.Println("initial plan: estimated exe time ", pState.Energy()/1e9, "sec")
 	tsp := goanneal.NewAnnealer(pState)
 	tsp.Steps = 100000
