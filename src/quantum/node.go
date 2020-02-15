@@ -16,7 +16,16 @@ type Node struct {
 	cchannels  map[string]*ClassicalChannel
 }
 
+func (node *Node) HasCCto(dst *Node) bool {
+	_, exist := node.cchannels[dst.name]
+	return exist
+}
+
 func (node *Node) assignCChannel(cc *ClassicalChannel) {
+	_, exists := node.cchannels[cc.receiver.name]
+	if exists {
+		panic("duplicated classical channel is assigned")
+	}
 	node.cchannels[cc.receiver.name] = cc
 }
 

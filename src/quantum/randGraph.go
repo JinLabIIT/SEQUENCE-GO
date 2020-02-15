@@ -3,6 +3,7 @@ package quantum
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gonum/floats"
 	"github.com/matsulib/goanneal"
 	"golang.org/x/exp/rand"
 	"io/ioutil"
@@ -18,7 +19,7 @@ func randGraph(threadNum int, filename string, optimized bool) {
 
 	ATTENUATION := 0.0002
 	QCFIDELITY := 0.99
-	LIGHTSPEED := 4e-4
+	LIGHTSPEED := 2e-4
 	LIGHTSOURCE_MEAN := 0.1
 	CCDELAY := 1e9
 
@@ -82,6 +83,11 @@ func randGraph(threadNum int, filename string, optimized bool) {
 	for _, link := range randomLinks {
 		source := link.source
 		target := link.target
+
+		if nodes[source].HasCCto(nodes[target]) {
+			continue
+		}
+
 		op := OpticalChannel{polarizationFidelity: QCFIDELITY, attenuation: ATTENUATION, distance: link.distance, lightSpeed: LIGHTSPEED}
 		ccName := fmt.Sprint("cc_", nodes[source].name, "_", nodes[target].name)
 		cc := &ClassicalChannel{name: ccName, OpticalChannel: op, delay: CCDELAY}
@@ -112,21 +118,25 @@ func randGraph(threadNum int, filename string, optimized bool) {
 		qsdName := fmt.Sprint(nodes[target].name, ".qsdetector")
 		qsd := QSDetector{name: qsdName, timeline: nodes[target].timeline, detectors: detectors}
 		qc.setReceiver(&qsd)
-		nodes[source].components["lightSource"] = &ls
+		sourceName := fmt.Sprintf("lightSource.%d.%d", source, target)
+		nodes[source].components[sourceName] = &ls
 		qsd._init()
 		qsd.init()
-		nodes[target].components["detector"] = &qsd
+		detectorName := fmt.Sprintf("detector.%d.%d", source, target)
+		nodes[target].components[detectorName] = &qsd
 	}
 
 	// create BB84
 	parent_protocols := make([]*Parent, 0)
-	for i, link := range randomLinks {
+	for _, link := range randomLinks {
 		source := link.source
 		target := link.target
-		bbName := fmt.Sprint(nodes[source].name, ".bba.", i)
-		bba := BB84{name: bbName, timeline: nodes[source].timeline, role: 0} //alice.role = 0
-		bbName = fmt.Sprint(nodes[target].name, ".bbb.", i)
-		bbb := BB84{name: bbName, timeline: nodes[target].timeline, role: 1} //bob.role = 1
+		sourceName := fmt.Sprintf("lightSource.%d.%d", source, target)
+		detectorName := fmt.Sprintf("detector.%d.%d", source, target)
+		bbName := fmt.Sprint(nodes[source].name, ".bba.", target)
+		bba := BB84{name: bbName, timeline: nodes[source].timeline, role: 0, sourceName: sourceName, detectorName: detectorName} //alice.role = 0
+		bbName = fmt.Sprint(nodes[target].name, ".bbb.", target)
+		bbb := BB84{name: bbName, timeline: nodes[target].timeline, role: 1, sourceName: sourceName, detectorName: detectorName} //bob.role = 1
 		bba._init()
 		bbb._init()
 		bba.assignNode(nodes[source], CCDELAY, int(link.distance/LIGHTSPEED))
