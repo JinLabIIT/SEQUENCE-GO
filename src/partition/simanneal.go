@@ -129,7 +129,7 @@ func (self *PartitionState) getMaxExeTime(lookahead float64) float64 {
 		maxWeight = maxfloat64(maxWeight, totalWeight)
 	}
 
-	return getExeTime(maxWeight, lookahead)
+	return getExeTime(maxWeight, lookahead, len(self.State))
 }
 
 func (self *PartitionState) GetEventNum(lookahead float64) int64 {
@@ -227,11 +227,15 @@ func getElementByIndex(targetSet map[int]bool, index int) int {
 	return keys[index]
 }
 
-func getExeTime(weight float64, lookahead float64) float64 {
+func getExeTime(weight float64, lookahead float64, threadNum int) float64 {
 	// nano second
-	k := 6881.0
-	b := 4536000.0
-	return k*weight*lookahead + b
+	//k := 6881.0
+	//b := 4536000.0
+	//return k*weight*lookahead + b
+	a0 := 7.361e6
+	a1 := 7.16e3
+	a2 := 47.3
+	return a0 + a1*weight*lookahead + a2*float64(threadNum)
 }
 
 func getMergeTime(weight float64, outNum int, lookahead float64) float64 {
