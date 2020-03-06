@@ -1,16 +1,15 @@
 package quantum
 
 import (
-	"kernel"
 	"math"
 	"reflect"
 )
 
 type Photon struct {
-	name             string           // inherit
-	timeline         *kernel.Timeline // inherit
-	wavelength       float64
-	location         *QuantumChannel        //tmp
+	//name             string           // inherit
+	//timeline         *kernel.Timeline // inherit
+	//wavelength       float64
+	//location         *QuantumChannel        //tmp
 	encodingType     map[string]interface{} // temp
 	quantumState     []complex128
 	entangledPhotons []*Photon //future []*Photon

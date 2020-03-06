@@ -3,7 +3,7 @@ package quantum
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gonum/floats"
+	_ "github.com/gonum/floats"
 	"github.com/matsulib/goanneal"
 	"golang.org/x/exp/rand"
 	"io/ioutil"
@@ -13,7 +13,7 @@ import (
 	"partition"
 )
 
-func randGraph(threadNum int, filename string, optimized bool) {
+func RandGraph(threadNum int, filename string, optimized bool) {
 	SEED := uint64(0)
 	SIM_TIME := 2e10
 
@@ -180,6 +180,10 @@ func randGraph(threadNum int, filename string, optimized bool) {
 	//fmt.Println("sync counter:", tls[0].SyncCounter)
 	//fmt.Println("end time", tls[0].Now())
 	//WriteFile(tls[0].FuncTime)
+	//name := "ExceTime.txt"
+	//for _ , tl := range tls{
+	//	WriteUint64(tl.SyncWindowsEvent,tl.SyncWindowsTime,threadNum,name)
+	//}
 }
 
 type Link struct {

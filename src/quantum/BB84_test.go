@@ -62,7 +62,7 @@ import (
 
 func Test(t *testing.T) {
 	fmt.Println("start test")
-	//test()
+	BB84Test()
 	fmt.Println("test finished")
 }
 

@@ -55,16 +55,22 @@ func (ls *LightSource) _emit(message kernel.Message) {
 	numPhotons := message["numPhotons"].(int64)
 	state := message["state"].([]complex128)
 	index := message["index"].(int)
-	time := ls.timeline.Now()
+	Time := ls.timeline.Now()
 	sep := uint64(math.Round(math.Pow10(12) / ls.frequency))
 	for i := 0; i < int(numPhotons); i++ {
-		wavelength := ls.lineWidth*ls.grng.Gaussian(0, 1) + ls.wavelength
-		newPhoton := Photon{timeline: ls.timeline, wavelength: wavelength, location: ls.directReceiver, encodingType: ls.encodingType, quantumState: state}
+		//wavelength := ls.lineWidth*ls.grng.Gaussian(0, 1) + ls.wavelength
+		//creatPhoton = time.Now().UnixNano()
+		//newPhoton := Photon{location: ls.directReceiver, encodingType: ls.encodingType, quantumState: state}
+		newPhoton := Photon{encodingType: ls.encodingType, quantumState: state}
+		//endCreate = time.Now().UnixNano()
 		newPhoton._init()
+		//schedTime = time.Now().UnixNano()
 		ls.directReceiver.get(&newPhoton)
+		//schedEndTime = time.Now().UnixNano()
 		ls.photonCounter += 1
 	}
-	time += sep
+	Time += sep
+	counter := 0
 	for index < len(*stateList) {
 		numPhotons := ls.poisson.Poisson(ls.meanPhotonNum)
 		if numPhotons > 0 {
@@ -74,12 +80,15 @@ func (ls *LightSource) _emit(message kernel.Message) {
 			}
 			message := kernel.Message{"stateList": stateList, "numPhotons": numPhotons, "state": state, "index": index + 1}
 			process := kernel.Process{Fnptr: ls._emit, Message: message, Owner: ls.timeline}
-			event := kernel.Event{Time: time, Process: &process, Priority: 0}
+			event := kernel.Event{Time: Time, Process: &process, Priority: 0}
+			//secSchedS = time.Now().UnixNano()
 			ls.timeline.Schedule(&event)
+			//secSchedE = time.Now().UnixNano()
 			break
 		}
+		counter++
 		index += 1
-		time += sep
+		Time += sep
 	}
 }
 

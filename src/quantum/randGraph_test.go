@@ -1,8 +1,13 @@
 package quantum
 
-import "testing"
+import (
+	"src/github.com/pkg/profile"
+	"testing"
+)
 
 func Test_randGraph(t *testing.T) {
+	//RandGraph(2, "../../tools/1.json", false)
+	defer profile.Start().Stop()
 	type args struct {
 		threadNum int
 		path      string
@@ -32,9 +37,10 @@ func Test_randGraph(t *testing.T) {
 		{"8 threads seed 3", args{8, "../../tools/3.json", false}},
 		{"8 threads optimized seed 3", args{8, "../../tools/3.json", true}},
 	}
+	tests = tests[0:1]
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			randGraph(tt.args.threadNum, tt.args.path, tt.args.optimized)
+			RandGraph(tt.args.threadNum, tt.args.path, tt.args.optimized)
 		})
 	}
 }

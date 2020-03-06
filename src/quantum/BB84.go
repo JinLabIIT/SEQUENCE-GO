@@ -4,6 +4,7 @@ import (
 	"github.com/gonum/floats"
 	"github.com/leesper/go_rng"
 	"golang.org/x/exp/errors/fmt"
+	"golang.org/x/exp/rand"
 	"kernel"
 	"math"
 	"strconv"
@@ -371,16 +372,35 @@ func (parent *Parent) getKeyFromBB84(key []uint64) {
 	parent.key = key
 }
 
-func test() {
-	seed := int64(156)
+func BB84Test() {
+	//SIM_TIME := 2e10
+
+	ATTENUATION := 0.0002
+	QCFIDELITY := 0.99
+	LIGHTSPEED := 2e-4
+	LIGHTSOURCE_MEAN := 0.1
+	//CCDELAY := 1e9
+
+	WAVELEN := 1550.0
+	//DETECTOR_EFFICIENCY := 0.8
+	//DARKCOUNT := 0.0
+	//TIME_RESOLUTION := uint64(10)
+	//COUNT_RATE := 5e7
+	DISTANCE := 10 * math.Pow10(3)
+	//KEYSIZE := 512
+	seed := uint64(156)
 	fmt.Println("Polarization:")
-	poisson := rng.NewPoissonGenerator(seed)
+	rand.Seed(seed)
+	//poisson := rng.NewPoissonGenerator(seed)
 	tl := kernel.Timeline{Name: "timeline", LookAhead: math.MaxInt64}
+	tl.Init(math.MaxUint64, uint64(math.Pow10(11)))
 	tl.SetEndTime(uint64(math.Pow10(11))) //stop time is 100 ms
-	op := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, distance: 10 * math.Pow10(3), lightSpeed: 2 * math.Pow10(-4)}
+	op := OpticalChannel{polarizationFidelity: QCFIDELITY, attenuation: ATTENUATION, distance: DISTANCE, lightSpeed: LIGHTSPEED}
 	qc := QuantumChannel{name: "qc", timeline: &tl, OpticalChannel: op}
+	qc.init()
 	// Alice
-	ls := LightSource{name: "Alice.lightSource", timeline: &tl, frequency: 80 * math.Pow10(6), meanPhotonNum: 0.1, directReceiver: &qc, poisson: poisson, wavelength: 1550, encodingType: polarization()}
+	ls := LightSource{name: "Alice.lightSource", timeline: &tl, frequency: 80 * math.Pow10(6), meanPhotonNum: LIGHTSOURCE_MEAN, directReceiver: &qc, wavelength: WAVELEN, encodingType: polarization()}
+	ls.init()
 	components := map[string]interface{}{"lightSource": &ls}
 	alice := Node{name: "alice", timeline: &tl, components: components}
 	qc.setSender(&ls)
@@ -442,71 +462,4 @@ func test() {
 	}
 	fmt.Println("sum error rates: ")
 	fmt.Print(floats.Sum(bba.errorRates) / float64(len(bba.errorRates)))
-	// TIME BIN TESTING need to modify
 }
-
-//func test2() {
-//	fmt.Println("Time Bin:")
-//	tl := kernel.Timeline{Name: "alice2", LookAhead: math.MaxInt64}
-//	tl.SetEndTime(uint64(math.Pow10(13))) //stop time is 100 ms
-//	op := OpticalChannel{lightSpeed: 3 * math.Pow10(-4), polarizationFidelity: 0.99, distance: math.Pow10(3)}
-//	qc := QuantumChannel{name: "qc", timeline: &tl, OpticalChannel: op}
-//
-//	// Alice
-//	ls := LightSource{name: "Alice.lightSource", timeline: &tl, frequency: 80 * math.Pow10(6), meanPhotonNum: 0.1, directReceiver: &qc, encodingType: timeBin()}
-//	components := map[string]interface{}{"asource": &ls}
-//	alice := Node{name: "alice", timeline: &tl, components: components}
-//	qc.setSender(&ls)
-//
-//
-//
-//	//Bob
-//	detectors := []*Detector{{efficiency: 0.8, darkCount: 100, timeResolution: 10, countRate: 50 * math.Pow10(6)}, {efficiency: 0.8, darkCount: 100, timeResolution: 10, countRate: 50 * math.Pow10(6)}, {efficiency: 0.8, darkCount: 100, timeResolution: 10, countRate: 50 * math.Pow10(6)}, {efficiency: 0.8, darkCount: 100, timeResolution: 10, countRate: 50 * math.Pow10(6)}}
-//
-//	interferometer := Interferometer{pathDifference: timeBin()["binSeparation"].(int)}
-//	qsd := QSDetector{name: "bob.qsdetector", timeline: &tl, detectors: detectors, encodingType: timeBin(), interferometer: &interferometer}
-//	qsd._init()
-//	components = map[string]interface{}{"bdetector": &qsd}
-//	bob := Node{name: "bob", timeline: &tl, components: components}
-//	qc.setReceiver(&qsd)
-//
-//	cc := ClassicalChannel{name: "alice_bob", timeline: &tl, OpticalChannel: op, delay: float64(1 * math.Pow10(9))}
-//	cc.SetSender(&alice)
-//	cc.SetReceiver(&bob)
-//	alice.assignCChannel(&cc)
-//
-//	cc = ClassicalChannel{name: "bob_alice", timeline: &tl, OpticalChannel: op, delay: float64(1 * math.Pow10(9))}
-//	cc.SetSender(&bob)
-//	cc.SetReceiver(&alice)
-//	bob.assignCChannel(&cc)
-//
-//	// init() components elements
-//	qsd.init()
-//	// need to do
-//
-//	//BB84
-//	bba := BB84{name: "bba", timeline: &tl, role: 0, sourceName: "asource"}     //alice.role = 0
-//	bbb := BB84{name: "bbb", timeline: &tl, role: 1, detectorName: "bdetector"} //bob.role = 1
-//	bba.assignNode(&alice, cc.delay, int(qc.lightSpeed/qc.distance))
-//	bbb.assignNode(&bob, cc.delay, int(qc.lightSpeed/qc.distance))
-//	bba.another = &bbb
-//	bbb.another = &bba
-//
-//	//Parent
-//	pa := Parent{keySize: 512}
-//	pb := Parent{keySize: 512}
-//	pa.child = &bba
-//	pb.child = &bbb
-//	bba.addParent(&pa)
-//	bbb.addParent(&pb)
-//
-//	message := kernel.Message{}
-//	process := kernel.Process{Fnptr: pa.run, Message: message, Owner: &tl}
-//	event := kernel.Event{Time: 0, Priority: 0, Process: &process}
-//	tl.Schedule(&event)
-//	kernel.Run([]*kernel.Timeline{&tl})
-//
-//	fmt.Println("latency (s): " + fmt.Sprintf("%f", bba.latency))
-//	//fmt.Println("average throughput (Mb/s): "+fmt.Sprintf("%f",math.Pow10(-6) * sum(bba.throughputs) / len(bba.throughputs)))
-//	fmt.Println("bit error rates:")
-//}

@@ -3,8 +3,10 @@ package kernel
 import (
 	"fmt"
 	"math"
-	"os"
+	_ "reflect"
+	_ "runtime"
 	"sync"
+	_ "time"
 )
 
 type Timeline struct {
@@ -24,7 +26,6 @@ type Timeline struct {
 func (t *Timeline) Init(lookahead, endTime uint64) {
 	t.eventBuffer = make(EventBuffer)
 	t.events = EventList{make([]*Event, 0, 0)}
-	// t.events = EventList{make([]*Event, 0, 100000)}
 	t.executedEvent = 0
 	t.scheduledEvent = 0
 	t.LookAhead = lookahead
@@ -41,8 +42,7 @@ func (t *Timeline) Now() uint64 {
 
 func (t *Timeline) Schedule(event *Event) {
 	if t.time > event.Time {
-		fmt.Println("ERROR: cannot schedule an event in the past time")
-		os.Exit(3) //cannot schedule an event in the past time
+		panic("ERROR: cannot schedule an event in the past time")
 	}
 	if t == event.Process.Owner {
 		t.scheduledEvent += 1
@@ -53,7 +53,6 @@ func (t *Timeline) Schedule(event *Event) {
 }
 
 func (t *Timeline) getCrossTimelineEvents() {
-	//fmt.Println("before", t.Name, t.events.size())
 	var eb []*EventList
 	eb = append(eb, &t.events)
 
@@ -66,7 +65,6 @@ func (t *Timeline) getCrossTimelineEvents() {
 		t.scheduledEvent += uint64(tmp.size())
 		eb = append(eb, tmp)
 	}
-	//fmt.Println("    ", t.Name, eb[len(t.otherTimeline)-1].size())
 	for len(eb) != 1 {
 		//memory question
 		var eb2 []*EventList
@@ -97,6 +95,8 @@ func (t *Timeline) updateNextStopTime(nextStop uint64) {
 }
 
 func (t *Timeline) syncWindow() {
+	//past:= time.Now().UnixNano()
+	//NoEvents := t.executedEvent
 	for t.events.size() != 0 && t.events.top().Time < t.nextStopTime {
 		event := t.events.pop()
 		if event.Time < t.time {
