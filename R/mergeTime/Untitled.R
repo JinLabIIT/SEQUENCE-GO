@@ -1,0 +1,87 @@
+setwd("/Users/cheung/Desktop/tmp/file")
+
+name = paste("k=", 2,".txt",sep="")
+data <- read.csv(name,sep = " ",header = FALSE)
+names(data) <- c("No.events","Time")
+data$nlogk <- ceiling(log2(2))*data$No.events
+data$k <- 2
+for (i in 3:40){
+  name = paste("k=", i,".txt",sep="")
+  tmp <- read.csv(name,sep = " ",header = FALSE)
+  names(tmp) <- c("No.events","Time")
+  tmp$nlogk <- ceiling(log2(i))*tmp$No.events
+  tmp$k <- i
+  data <- rbind(data,tmp)
+}
+number <- sample(1:nrow(df1),.8*nrow(df1))
+test <- data[-number,-2]
+ytest <- data[-number,2]
+train <- data[number,]
+trainlm <- lm(Time~nlogk,train)
+result <- predict(trainlm, test,interval = "prediction")
+fit <- result[,1]
+
+SSR = sum((fit-ytest)^2)
+SST = sum((fit-mean(ytest))^2)
+r_square = 1 - SSR/SST
+
+a <- (fit-ytest)/ytest
+mod <- a[a < 0.2 & a >-0.2]
+val <- a[a < 10 & a >-10]
+sum(abs(val))/length(val)
+
+model <- lm(Time~.,data)
+model2 <- lm(Time~nlogk,data)
+model3 <- lm(Time~nlogk+No.events,data)
+
+new <- data[data$No.events<50000,]
+df <- data.frame()
+for (i in 2:40){
+  tmp <- new[new$k==i,]
+  seq <- sample(1:nrow(tmp),262)
+  t <- tmp[seq,]
+  df<-rbind(df,t)
+}
+df_model <- lm(Time~.,df)
+
+new <- data[data$No.events<50000 & data$No.events>1000,]
+df <- data.frame()
+for (i in 2:40){
+  tmp <- new[new$k==i,]
+  seq <- sample(1:nrow(tmp),261)
+  t <- tmp[seq,]
+  df<-rbind(df,t)
+}
+df_model <- lm(Time~.,df)
+
+test <- data[data$No.events > 10000,]
+test_model <- lm(Time~.,test)
+test_model2 <- lm(Time~nlogk,test)
+
+df1 <- data.frame()
+for (i in seq(from = min(data$nlogk),to=max(data$nlogk),by= 1000)){
+  tmp <- data[data$nlogk >i & data$nlogk < i+1000,]
+  iqr = 1.5*IQR(tmp$Time)
+  lower <- unname(quantile(tmp$Time,0.25))-iqr
+  upper <- unname(quantile(tmp$Time,0.75))+iqr
+  tmp <- tmp[tmp$Time > lower & tmp$Time < upper,]
+  df1 <- rbind(df1,tmp)
+}
+df1_model <- lm(Time~.,df1)
+df1_model2 <- lm(Time~nlogk+No.events,df1)
+df2_model3 <- lm(Time~nlogk,df1)
+
+number <- sample(1:nrow(df1),.8*nrow(df1))
+test <- df1[-number,-2]
+ytest <- df1[-number,2]
+train <- df1[number,]
+trainlm <- lm(Time~nlogk+No.events,train)
+result <- predict(trainlm, test,interval = "prediction")
+fit <- result[,1]
+
+a <- (fit-ytest)/ytest
+mod <- a[a < 0.2 & a >-0.2]
+val <- a[a < 10 & a >-10]
+sum(abs(val))/length(val)
+
+tt <- df1[df1$No.events>100000,]
