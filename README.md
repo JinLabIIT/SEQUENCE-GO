@@ -2,6 +2,8 @@
 
 Golang version of SEQUENCE. A simulator for quantum network.
 
+# R Install
+	https://cran.r-project.org/mirrors.html
 
 # ExceTime.R
 1. Change PWD in line 1 to "./ExceTime"
