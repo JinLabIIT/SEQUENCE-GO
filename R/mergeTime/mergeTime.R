@@ -1,4 +1,4 @@
-setwd("D:/QKD/SEQUENCE-GO-ringNetwork/R/mergeTime/data")
+setwd("./data")
 
 name = paste("k=", 2,".txt",sep="")
 data <- read.csv(name,sep = " ",header = FALSE)

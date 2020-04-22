@@ -1,4 +1,4 @@
-setwd("D:/QKD/SEQUENCE-GO-ringNetwork/R/ExceTime")
+setwd("./")
 set.seed(60616)
 df <- read.csv("ExceTime.txt",sep = ",",header = FALSE)
 names(df) <- c("exceTime","No.events","k")
