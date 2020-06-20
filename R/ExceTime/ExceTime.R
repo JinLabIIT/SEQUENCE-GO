@@ -1,0 +1,6 @@
+setwd("./")
+set.seed(60616)
+df <- read.csv("ExceTime.txt",sep = ",",header = FALSE)
+names(df) <- c("exceTime","No.events","k")
+df_lm <- lm(exceTime~.,df) 
+print(summary(df_lm))

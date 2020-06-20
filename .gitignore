@@ -13,3 +13,9 @@
 
 # IDE configuration files
 .idea
+
+# bin and pkg folders
+/bin
+/pkg
+/src/github.com
+/src/golang.org
