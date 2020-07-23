@@ -21,6 +21,9 @@ type Timeline struct {
 	executedEvent  uint64
 	scheduledEvent uint64
 	SyncCounter    uint64
+	MessagePool    *sync.Pool
+	ProcessPool    *sync.Pool
+	EventPool      *sync.Pool
 }
 
 func (t *Timeline) Init(lookahead, endTime uint64) {
@@ -106,6 +109,9 @@ func (t *Timeline) syncWindow() {
 		t.time = event.Time
 		t.executedEvent += 1
 		event.Process.run()
+		t.MessagePool.Put(event.Process.Message)
+		t.ProcessPool.Put(event.Process)
+		t.EventPool.Put(event)
 	}
 }
 
