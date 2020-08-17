@@ -11,7 +11,7 @@ import json
 
 for n in range(48, 81, 8):
     for d in range(3,6):
-        d /= 2
+        d /= 2.0
         for seed in range(3):
             p = d/(n-1)
             for seed in range(3):

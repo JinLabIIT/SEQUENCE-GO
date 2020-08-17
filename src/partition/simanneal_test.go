@@ -33,7 +33,7 @@ func TestPartitionState_Copy(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			self := NewPartitionState(tt.fields.graph, tt.fields.state, tt.fields.vMoveProb, tt.fields.seed)
+			self := NewPartitionState(tt.fields.graph, tt.fields.state, tt.fields.vMoveProb, 100, tt.fields.seed)
 			got := self.Copy().(*PartitionState)
 			self.State[0][-1] = true
 			if len(self.State[0]) == len(got.State[0]) {
@@ -89,7 +89,7 @@ func TestPartitionState_Move(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			self := NewPartitionState(tt.fields.graph, tt.fields.state, tt.fields.vMoveProb, tt.fields.seed)
+			self := NewPartitionState(tt.fields.graph, tt.fields.state, tt.fields.vMoveProb, 100, tt.fields.seed)
 			self.Move()
 			if !reflect.DeepEqual(self.State, tt.want) {
 				t.Errorf("Move() = %v, want %v", self.State, tt.want)
@@ -196,7 +196,7 @@ func TestPartitionState_twoNodesBelongSameSet(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			self := NewPartitionState(tt.fields.graph, tt.fields.state, tt.fields.vMoveProb, tt.fields.seed)
+			self := NewPartitionState(tt.fields.graph, tt.fields.state, tt.fields.vMoveProb, 100, tt.fields.seed)
 
 			if got := self.twoNodesBelongSameSet(tt.args.id1, tt.args.id2); got != tt.want {
 				t.Errorf("twoNodesBelongSameSet() = %v, want %v", got, tt.want)
@@ -255,7 +255,7 @@ func TestPartitionState_getLookAhead(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			self := NewPartitionState(tt.fields.graph, tt.fields.state, tt.fields.vMoveProb, tt.fields.seed)
+			self := NewPartitionState(tt.fields.graph, tt.fields.state, tt.fields.vMoveProb, 100, tt.fields.seed)
 			if got := self.GetLookAhead(); got != tt.want {
 				t.Errorf("GetLookAhead() = %v, want %v", got, tt.want)
 			}
@@ -315,7 +315,7 @@ func TestPartitionState_getMaxExeTime(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			self := NewPartitionState(tt.fields.graph, tt.fields.state, tt.fields.vMoveProb, tt.fields.seed)
+			self := NewPartitionState(tt.fields.graph, tt.fields.state, tt.fields.vMoveProb, 100, tt.fields.seed)
 			if got := self.getMaxExeTime(tt.args.lookahead); got < 0 {
 				t.Errorf("getMaxExeTime() = %v, want larger than 0", got)
 			}
@@ -375,7 +375,7 @@ func TestPartitionState_getMaxMergeTime(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			self := NewPartitionState(tt.fields.graph, tt.fields.state, tt.fields.vMoveProb, tt.fields.seed)
+			self := NewPartitionState(tt.fields.graph, tt.fields.state, tt.fields.vMoveProb, 100, tt.fields.seed)
 			if got := self.getMaxMergeTime(tt.args.lookahead); got < 0 {
 				t.Errorf("getMaxMergeTime() = %v, want larger than 0", got)
 			}
@@ -431,7 +431,7 @@ func TestPartitionState_Energy(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			self := NewPartitionState(tt.fields.graph, tt.fields.state, tt.fields.vMoveProb, tt.fields.seed)
+			self := NewPartitionState(tt.fields.graph, tt.fields.state, tt.fields.vMoveProb, 100, tt.fields.seed)
 			self.Energy()
 		})
 	}
