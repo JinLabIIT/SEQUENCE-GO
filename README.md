@@ -12,3 +12,30 @@ Golang version of SEQUENCE. A simulator for quantum network.
 # mergeTime.R
 1. Change PWD in line 1 to "./mergeTime/data"
 2. Run mergeTime.R file in R platform and the result will print out. 
+
+# Execute Simulation
+
+## Generate Random Graphs
+Install pip
+
+```shell script
+$ curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+$ python get-pip.py
+```
+
+Install networkx
+```shell script
+$ pip install networkx
+```
+
+Generate random graph
+```shell script
+$ cd tools
+$ python random_graph.py
+```
+
+## Run Simulation
+
+```shell script
+$ go test -run Test_randomGraph -timeout 60h
+```

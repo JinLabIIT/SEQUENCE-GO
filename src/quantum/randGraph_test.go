@@ -1,7 +1,7 @@
 package quantum
 
 import (
-	"src/github.com/pkg/profile"
+	"github.com/pkg/profile"
 	"testing"
 )
 
@@ -37,7 +37,7 @@ func Test_randGraph(t *testing.T) {
 		{"8 threads seed 3", args{8, "../../tools/3.json", false}},
 		{"8 threads optimized seed 3", args{8, "../../tools/3.json", true}},
 	}
-	tests = tests[0:1]
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			RandGraph(tt.args.threadNum, tt.args.path, tt.args.optimized)

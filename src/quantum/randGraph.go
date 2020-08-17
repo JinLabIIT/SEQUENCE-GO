@@ -52,7 +52,7 @@ func RandGraph(threadNum int, filename string, optimized bool) {
 		plan, lookAhead = optimization(graph, plan)
 	}
 
-	//fmt.Println("n: ", n, "threadNum: ", threadNum, "lookAhead:", lookAhead)
+	fmt.Println("n: ", n, "threadNum: ", threadNum, "lookAhead:", lookAhead)
 
 	rand.Seed(SEED)
 
