@@ -1,9 +1,9 @@
 package quantum
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
-	_ "github.com/gonum/floats"
 	"github.com/matsulib/goanneal"
 	"golang.org/x/exp/rand"
 	"io/ioutil"
@@ -11,9 +11,10 @@ import (
 	"math"
 	"os"
 	"partition"
+	"time"
 )
 
-func RandGraph(threadNum int, filename string, optimized bool) {
+func randGraph(threadNum int, filename string, optimized bool) {
 	SEED := uint64(0)
 	SIM_TIME := 2e10
 
@@ -47,9 +48,10 @@ func RandGraph(threadNum int, filename string, optimized bool) {
 	randomLinks := randomAttributes(links)
 	graph := createGraph(n, randomLinks, LIGHTSOURCE_MEAN, ATTENUATION, LIGHTSPEED)
 
-	plan, lookAhead := randomSchedule(threadNum, graph)
+	plan, lookAhead := randomSchedule(threadNum, graph, SIM_TIME)
+	//fmt.Println(plan, lookAhead)
 	if optimized {
-		plan, lookAhead = optimization(graph, plan)
+		plan, lookAhead = optimization(graph, plan, SIM_TIME, filename, threadNum)
 	}
 
 	fmt.Println("n: ", n, "threadNum: ", threadNum, "lookAhead:", lookAhead)
@@ -161,29 +163,49 @@ func RandGraph(threadNum int, filename string, optimized bool) {
 		parent_protocols[i].child.timeline.Schedule(&event)
 	}
 
+	tick := time.Now().UnixNano()
 	kernel.Run(tls)
+	tock := time.Now().UnixNano()
+	elapsed := tock - tick
+	if elapsed <= 0 {
+		fmt.Println(elapsed)
 
-	/*	for i := 0; i < totalNodes; i++ {
-		fmt.Println(nodes[i].name)
-		fmt.Println("   latency (s): " + fmt.Sprintf("%f", parent_protocols[i].child.latency))
-		//fmt.Println("average throughput (Mb/s): "+fmt.Sprintf("%f",math.Pow10(-6) * sum(bba.throughputs) / len(bba.throughputs)))
-		fmt.Print("   average throughput (Mb/s): ")
-		fmt.Println("   ", 1e-6*floats.Sum(parent_protocols[i].child.throughPuts)/float64(len(parent_protocols[i].child.errorRates)))
-		//fmt.Println("   bit error rates:")
-		//for i, e := range parent_protocols[i].child.errorRates {
-		//	fmt.Println("\tkey " + strconv.Itoa(i+1) + ":\t" + fmt.Sprintf("%f", e*100) + "%")
-		//}
-		fmt.Print("   sum error rates: ")
-		fmt.Println("   ", floats.Sum(parent_protocols[i].child.errorRates)/float64(len(parent_protocols[i].child.errorRates)))
-	}*/
+	}
 
-	//fmt.Println("sync counter:", tls[0].SyncCounter)
+	var logName string
+
+	if optimized {
+		logName = "real1.log"
+	} else {
+		logName = "real2.log"
+	}
+	file, err := os.OpenFile(logName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Println(err)
+	}
+	datawriter := bufio.NewWriter(file)
+	sentence := fmt.Sprintf("%s %d %d\n", filename, threadNum, elapsed)
+	datawriter.WriteString(sentence)
+	datawriter.Flush()
+	file.Close()
+
+	//for i := 0; i < len(parent_protocols); i++ {
+	//	fmt.Println(parent_protocols[i].child.name)
+	//	fmt.Println("   latency (s): " + fmt.Sprintf("%f", parent_protocols[i].child.latency))
+	//	//fmt.Println("average throughput (Mb/s): "+fmt.Sprintf("%f",math.Pow10(-6) * sum(bba.throughputs) / len(bba.throughputs)))
+	//	fmt.Print("   average throughput (Mb/s): ")
+	//	fmt.Println("   ", 1e-6*floats.Sum(parent_protocols[i].child.throughPuts)/float64(len(parent_protocols[i].child.errorRates)))
+	//	//fmt.Println("   bit error rates:")
+	//	//for i, e := range parent_protocols[i].child.errorRates {
+	//	//	fmt.Println("\tkey " + strconv.Itoa(i+1) + ":\t" + fmt.Sprintf("%f", e*100) + "%")
+	//	//}
+	//	fmt.Print("   sum error rates: ")
+	//	fmt.Println("   ", floats.Sum(parent_protocols[i].child.errorRates)/float64(len(parent_protocols[i].child.errorRates)))
+	//}
+
+	fmt.Println("sync counter:", tls[0].SyncCounter)
 	//fmt.Println("end time", tls[0].Now())
 	//WriteFile(tls[0].FuncTime)
-	//name := "ExceTime.txt"
-	//for _ , tl := range tls{
-	//	WriteUint64(tl.SyncWindowsEvent,tl.SyncWindowsTime,threadNum,name)
-	//}
 }
 
 type Link struct {
@@ -214,7 +236,7 @@ func randomAttributes(links []interface{}) []*Link {
 	return res
 }
 
-func randomSchedule(threadNum int, graph [][]partition.EdgeAttribute) ([]map[int]bool, float64) {
+func randomSchedule(threadNum int, graph [][]partition.EdgeAttribute, simTime float64) ([]map[int]bool, float64) {
 	plan := make([]map[int]bool, threadNum)
 	for i := 0; i < threadNum; i++ {
 		plan[i] = make(map[int]bool, 0)
@@ -224,20 +246,31 @@ func randomSchedule(threadNum int, graph [][]partition.EdgeAttribute) ([]map[int
 		plan[thread_id][i] = true
 	}
 
-	pState := partition.NewPartitionState(graph, plan, 1, 1)
+	pState := partition.NewPartitionState(graph, plan, 1, simTime, 1)
 
 	//fmt.Println(plan)
 	return plan, pState.GetLookAhead()
 }
 
-func optimization(graph [][]partition.EdgeAttribute, plan []map[int]bool) ([]map[int]bool, float64) {
-	pState := partition.NewPartitionState(graph, plan, 1, 1)
-	fmt.Println("initial plan: estimated exe time ", pState.Energy()/1e9, "sec")
+func optimization(graph [][]partition.EdgeAttribute, plan []map[int]bool, simTime float64, filename string, threadNum int) ([]map[int]bool, float64) {
+	pState := partition.NewPartitionState(graph, plan, 1, simTime, 1)
+	randTime := pState.Energy()
 	tsp := goanneal.NewAnnealer(pState)
 	tsp.Steps = 100000
 	afterState, energy := tsp.Anneal()
 	//fmt.Println(afterState.(*partition.PartitionState).State)
-	fmt.Println("optimized plan: estimated exe time ", energy/1e9, "sec")
+	optTime := energy
+
+	logName := "est.log"
+	file, err := os.OpenFile(logName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Println(err)
+	}
+	datawriter := bufio.NewWriter(file)
+	sentence := fmt.Sprintf("%s %d %f %f\n", filename, threadNum, randTime, optTime)
+	datawriter.WriteString(sentence)
+	datawriter.Flush()
+	file.Close()
 	return afterState.(*partition.PartitionState).State, afterState.(*partition.PartitionState).GetLookAhead()
 }
 

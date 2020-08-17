@@ -16,10 +16,11 @@ type PartitionState struct {
 	graph     [][]EdgeAttribute
 	State     []map[int]bool
 	vMoveProb float64
+	simTime   float64
 	rng       *rand.Rand
 }
 
-func NewPartitionState(graph [][]EdgeAttribute, state []map[int]bool, vMoveProb float64, seed int64) *PartitionState {
+func NewPartitionState(graph [][]EdgeAttribute, state []map[int]bool, vMoveProb, simTime float64, seed int64) *PartitionState {
 	rng := rand.New(rand.NewSource(seed))
 	flag := true
 	for i := range state {
@@ -35,7 +36,7 @@ func NewPartitionState(graph [][]EdgeAttribute, state []map[int]bool, vMoveProb 
 		panic("size of x and y dimensions are different")
 	}
 
-	return &PartitionState{graph, state, vMoveProb, rng}
+	return &PartitionState{graph, state, vMoveProb, simTime, rng}
 }
 
 func (self *PartitionState) Copy() interface{} {
@@ -50,11 +51,15 @@ func (self *PartitionState) Copy() interface{} {
 		graph:     self.graph,
 		State:     state,
 		vMoveProb: self.vMoveProb,
+		simTime:   self.simTime,
 		rng:       self.rng,
 	}
 }
 
 func (self *PartitionState) Move() {
+	if self.simTime == 0 {
+		panic("sim time is 0")
+	}
 	if self.rng.Float64() < self.vMoveProb {
 		// move single node to another subset
 		var srcIndex int
@@ -104,7 +109,7 @@ func (self *PartitionState) Move() {
 
 func (self *PartitionState) Energy() float64 {
 	lookahead := self.GetLookAhead()
-	return (self.getMaxExeTime(lookahead) + self.getMaxMergeTime(lookahead)) * (1e10 / lookahead)
+	return (self.getMaxExeTime(lookahead) + self.getMaxMergeTime(lookahead)) * (self.simTime / lookahead)
 }
 
 func (self *PartitionState) getMaxExeTime(lookahead float64) float64 {
@@ -124,7 +129,26 @@ func (self *PartitionState) getMaxExeTime(lookahead float64) float64 {
 		maxWeight = maxfloat64(maxWeight, totalWeight)
 	}
 
-	return getExeTime(maxWeight, lookahead)
+	return getExeTime(maxWeight, lookahead, len(self.State))
+}
+
+func (self *PartitionState) GetEventNum(lookahead float64) int64 {
+	maxWeight := float64(0)
+	for i := range self.State {
+		totalWeight := float64(0)
+		for nodeId := range self.State[i] {
+			// from nodeId to others
+			for _, edge := range self.graph[nodeId] {
+				totalWeight += float64(edge.Weight)
+			}
+			// from others to nodeId
+			for j := range self.graph {
+				totalWeight += float64(self.graph[j][nodeId].Weight) * self.graph[j][nodeId].Ratio
+			}
+		}
+		maxWeight = maxfloat64(maxWeight, totalWeight)
+	}
+	return int64(maxWeight * lookahead)
 }
 
 func (self *PartitionState) getMaxMergeTime(lookahead float64) float64 {
@@ -203,11 +227,15 @@ func getElementByIndex(targetSet map[int]bool, index int) int {
 	return keys[index]
 }
 
-func getExeTime(weight float64, lookahead float64) float64 {
+func getExeTime(weight float64, lookahead float64, threadNum int) float64 {
 	// nano second
-	k := 6881.0
-	b := 4536000.0
-	return k*weight*lookahead + b
+	//k := 6881.0
+	//b := 4536000.0
+	//return k*weight*lookahead + b
+	a0 := 7.361e6
+	a1 := 7.16e3
+	a2 := 47.3
+	return a0 + a1*weight*lookahead + a2*float64(threadNum)
 }
 
 func getMergeTime(weight float64, outNum int, lookahead float64) float64 {
