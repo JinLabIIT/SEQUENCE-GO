@@ -57,10 +57,18 @@ func (inf *Interferometer) get(photon *Photon) {
 				return
 			}
 		}
-		message := kernel.Message{}
-		process := kernel.Process{Fnptr: inf.detectors[detectorNum].get, Message: message, Owner: inf.timeline}
-		event := kernel.Event{Time: inf.timeline.Now() + uint64(time), Process: &process, Priority: 0}
-		inf.timeline.Schedule(&event)
+
+		event := inf.timeline.EventPool.Get().(*kernel.Event)
+		event.Time = inf.timeline.Now() + uint64(time)
+		event.Priority = 0
+		event.Process.Fnptr = inf.detectors[detectorNum].get
+		event.Process.Owner = inf.timeline
+		inf.timeline.Schedule(event)
+
+		//message := kernel.Message{}
+		//process := kernel.Process{Fnptr: inf.detectors[detectorNum].get, Message: message, Owner: inf.timeline}
+		//event := kernel.Event{Time: inf.timeline.Now() + uint64(time), Process: &process, Priority: 0}
+		//inf.timeline.Schedule(&event)
 	}
 }
 
@@ -91,10 +99,18 @@ func (_switch *Switch) get(photon *Photon) {
 	if _switch.typeList[index] == 1 { //???
 		if photon.encodingType["name"] == "timeBin" && photon.measure(photon.encodingType["bases"].([]*Basis)[0], 0.0) == 1 { //question mark
 			time := _switch.timeline.Now() + photon.encodingType["binSeparation"].(uint64)
-			message := kernel.Message{}
-			process := kernel.Process{Fnptr: receiver.(*Detector).get, Message: message, Owner: _switch.timeline}
-			event := kernel.Event{Time: time, Priority: 0, Process: &process}
-			_switch.timeline.Schedule(&event)
+
+			event := _switch.timeline.EventPool.Get().(*kernel.Event)
+			event.Time = time
+			event.Priority = 0
+			event.Process.Fnptr = receiver.(*Detector).get
+			event.Process.Owner = _switch.timeline
+			_switch.timeline.Schedule(event)
+
+			//message := kernel.Message{}
+			//process := kernel.Process{Fnptr: receiver.(*Detector).get, Message: message, Owner: _switch.timeline}
+			//event := kernel.Event{Time: time, Priority: 0, Process: &process}
+			//_switch.timeline.Schedule(&event)
 		} else {
 			receiver.(*Detector).get(kernel.Message{})
 		}

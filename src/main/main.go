@@ -10,8 +10,8 @@ import (
 
 func main() {
 	// a()
-	// b()
-	c()
+	b()
+	//c()
 }
 func a() {
 	totalNodes, _ := strconv.Atoi(os.Args[1])
@@ -28,5 +28,6 @@ func b() {
 }
 
 func c() {
+	//fmt.Println("hello world")
 	quantum.BB84Test()
 }

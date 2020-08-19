@@ -39,10 +39,22 @@ func (ls *LightSource) emit(stateList *Basis) {
 			if ls.rng.Float64() < ls.phaseError {
 				multiply([]float64{1.0, -1.0}, state)
 			}
-			message := kernel.Message{"stateList": stateList, "numPhotons": numPhotons, "state": state, "index": i + 1}
-			process := kernel.Process{Fnptr: ls._emit, Message: message, Owner: ls.timeline}
-			event := kernel.Event{Time: time, Process: &process, Priority: 0}
-			ls.timeline.Schedule(&event)
+
+			event := ls.timeline.EventPool.Get().(*kernel.Event)
+			event.Time = time
+			event.Priority = 0
+			event.Process.Message["stateList"] = stateList
+			event.Process.Message["numPhotons"] = numPhotons
+			event.Process.Message["state"] = state
+			event.Process.Message["index"] = i + 1
+			event.Process.Fnptr = ls._emit
+			event.Process.Owner = ls.timeline
+			ls.timeline.Schedule(event)
+
+			//message := kernel.Message{"stateList": stateList, "numPhotons": numPhotons, "state": state, "index": i + 1}
+			//process := kernel.Process{Fnptr: ls._emit, Message: message, Owner: ls.timeline}
+			//event := kernel.Event{Time: time, Process: &process, Priority: 0}
+			//ls.timeline.Schedule(&event)
 			break
 		}
 		time += sep
@@ -78,11 +90,22 @@ func (ls *LightSource) _emit(message kernel.Message) {
 			if ls.rng.Float64() < ls.phaseError {
 				multiply([]float64{1.0, -1.0}, state)
 			}
-			message := kernel.Message{"stateList": stateList, "numPhotons": numPhotons, "state": state, "index": index + 1}
-			process := kernel.Process{Fnptr: ls._emit, Message: message, Owner: ls.timeline}
-			event := kernel.Event{Time: Time, Process: &process, Priority: 0}
+
+			event := ls.timeline.EventPool.Get().(*kernel.Event)
+			event.Time = Time
+			event.Priority = 0
+			event.Process.Message["stateList"] = stateList
+			event.Process.Message["numPhotons"] = numPhotons
+			event.Process.Message["state"] = state
+			event.Process.Message["index"] = index + 1
+			event.Process.Fnptr = ls._emit
+			event.Process.Owner = ls.timeline
+			ls.timeline.Schedule(event)
+			//message := kernel.Message{"stateList": stateList, "numPhotons": numPhotons, "state": state, "index": index + 1}
+			//process := kernel.Process{Fnptr: ls._emit, Message: message, Owner: ls.timeline}
+			//event := kernel.Event{Time: Time, Process: &process, Priority: 0}
 			//secSchedS = time.Now().UnixNano()
-			ls.timeline.Schedule(&event)
+			//ls.timeline.Schedule(&event)
 			//secSchedE = time.Now().UnixNano()
 			break
 		}

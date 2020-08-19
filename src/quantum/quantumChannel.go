@@ -40,9 +40,18 @@ func (qc *QuantumChannel) get(photon *Photon) {
 			qc.depoCount += 1
 		}
 		futureTime := qc.timeline.Now() + uint64(math.Round(qc.distance/qc.lightSpeed))
-		message := kernel.Message{"photon": photon}
-		process := kernel.Process{Fnptr: qc.receiver.get, Message: message, Owner: qc.receiver.timeline}
-		event := kernel.Event{Time: futureTime, Process: &process, Priority: 0}
-		qc.timeline.Schedule(&event)
+
+		event := qc.timeline.EventPool.Get().(*kernel.Event)
+		event.Time = futureTime
+		event.Priority = 0
+		event.Process.Message["photon"] = photon
+		event.Process.Fnptr = qc.receiver.get
+		event.Process.Owner = qc.receiver.timeline
+		qc.timeline.Schedule(event)
+
+		//message := kernel.Message{"photon": photon}
+		//process := kernel.Process{Fnptr: qc.receiver.get, Message: message, Owner: qc.receiver.timeline}
+		//event := kernel.Event{Time: futureTime, Process: &process, Priority: 0}
+		//qc.timeline.Schedule(&event)
 	}
 }

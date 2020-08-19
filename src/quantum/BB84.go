@@ -9,6 +9,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type BB84 struct {
@@ -94,11 +95,18 @@ func (bb84 *BB84) beginPhotonPulse(message kernel.Message) {
 
 		// schedule another
 		bb84.startTime = bb84.timeline.Now()
-		message := kernel.Message{}
-		process := kernel.Process{Fnptr: bb84.beginPhotonPulse, Message: message, Owner: bb84.timeline}
 		time := bb84.startTime + uint64(math.Round(bb84.lightTime*math.Pow10(12)))
-		event := kernel.Event{Time: time, Process: &process, Priority: 0}
-		bb84.timeline.Schedule(&event)
+
+		event := bb84.timeline.EventPool.Get().(*kernel.Event)
+		event.Time = time
+		event.Priority = 0
+		event.Process.Fnptr = bb84.beginPhotonPulse
+		event.Process.Owner = bb84.timeline
+		bb84.timeline.Schedule(event)
+		//message := kernel.Message{}
+		//process := kernel.Process{Fnptr: bb84.beginPhotonPulse, Message: message, Owner: bb84.timeline}
+		//event := kernel.Event{Time: time, Process: &process, Priority: 0}
+		//bb84.timeline.Schedule(&event)
 	} else {
 		bb84.working = false
 		bb84.another.working = false
@@ -110,10 +118,18 @@ func (bb84 *BB84) beginPhotonPulse(message kernel.Message) {
 		bb84.another.endRunTimes = bb84.another.endRunTimes[1:]
 		// wait for quantum channel to clear of photons, then start protocol
 		time := bb84.timeline.Now() + uint64(bb84.quantumDelay+1)
-		message := kernel.Message{}
-		process := kernel.Process{Fnptr: bb84.startProtocol, Message: message, Owner: bb84.timeline}
-		event := kernel.Event{Time: time, Process: &process, Priority: 0}
-		bb84.timeline.Schedule(&event)
+
+		event := bb84.timeline.EventPool.Get().(*kernel.Event)
+		event.Time = time
+		event.Priority = 0
+		event.Process.Fnptr = bb84.startProtocol
+		event.Process.Owner = bb84.timeline
+		bb84.timeline.Schedule(event)
+
+		//message := kernel.Message{}
+		//process := kernel.Process{Fnptr: bb84.startProtocol, Message: message, Owner: bb84.timeline}
+		//event := kernel.Event{Time: time, Process: &process, Priority: 0}
+		//bb84.timeline.Schedule(&event)
 	}
 }
 
@@ -132,10 +148,18 @@ func (bb84 *BB84) endPhotonPulse(message kernel.Message) {
 			bb84.setBases()
 			// schedule another
 			time := bb84.startTime + uint64(math.Round(bb84.lightTime*math.Pow10(12)))
-			message := kernel.Message{}
-			process := kernel.Process{Fnptr: bb84.endPhotonPulse, Message: message, Owner: bb84.timeline}
-			event := kernel.Event{Time: time, Process: &process, Priority: 0}
-			bb84.timeline.Schedule(&event)
+
+			event := bb84.timeline.EventPool.Get().(*kernel.Event)
+			event.Time = time
+			event.Priority = 0
+			event.Process.Fnptr = bb84.endPhotonPulse
+			event.Process.Owner = bb84.timeline
+			bb84.timeline.Schedule(event)
+
+			//message := kernel.Message{}
+			//process := kernel.Process{Fnptr: bb84.endPhotonPulse, Message: message, Owner: bb84.timeline}
+			//event := kernel.Event{Time: time, Process: &process, Priority: 0}
+			//bb84.timeline.Schedule(&event)
 		}
 		bb84.node.sendMessage("receivedQubits", bb84.another.node.name)
 	}
@@ -159,16 +183,31 @@ func (bb84 *BB84) receivedMessage(message kernel.Message) {
 			//generate basis list and set bases for measurement
 			bb84.setBases()
 			//schedule end_photon_pulse()
-			message := kernel.Message{}
-			process := kernel.Process{Fnptr: bb84.endPhotonPulse, Message: message, Owner: bb84.timeline}
 			time := bb84.startTime + uint64(math.Round(bb84.lightTime*math.Pow10(12)))
-			event := kernel.Event{Time: time, Process: &process, Priority: 0}
-			bb84.timeline.Schedule(&event)
+
+			event := bb84.timeline.EventPool.Get().(*kernel.Event)
+			event.Time = time
+			event.Priority = 0
+			event.Process.Fnptr = bb84.endPhotonPulse
+			event.Process.Owner = bb84.timeline
+			bb84.timeline.Schedule(event)
+
+			//message := kernel.Message{}
+			//process := kernel.Process{Fnptr: bb84.endPhotonPulse, Message: message, Owner: bb84.timeline}
+			//event := kernel.Event{Time: time, Process: &process, Priority: 0}
+			//bb84.timeline.Schedule(&event)
 
 			//clear detector photon times to restart measurement
-			process1 := kernel.Process{Fnptr: bb84.node.components[bb84.detectorName].(*QSDetector).clearDetectors, Message: message, Owner: bb84.timeline}
-			event1 := kernel.Event{Time: bb84.startTime, Process: &process1, Priority: 0}
-			bb84.timeline.Schedule(&event1)
+
+			event1 := bb84.timeline.EventPool.Get().(*kernel.Event)
+			event1.Time = bb84.startTime
+			event1.Priority = 0
+			event1.Process.Fnptr = bb84.node.components[bb84.detectorName].(*QSDetector).clearDetectors
+			event1.Process.Owner = bb84.timeline
+			bb84.timeline.Schedule(event1)
+			//process1 := kernel.Process{Fnptr: bb84.node.components[bb84.detectorName].(*QSDetector).clearDetectors, Message: message, Owner: bb84.timeline}
+			//event1 := kernel.Event{Time: bb84.startTime, Process: &process1, Priority: 0}
+			//bb84.timeline.Schedule(&event1)
 		} else if message0[0] == "receivedQubits" {
 			if bb84.role != 0 {
 				return
@@ -323,10 +362,17 @@ func (bb84 *BB84) startProtocol(message kernel.Message) {
 			" "+fmt.Sprint(bb84.lightTime)+" "+fmt.Sprint(bb84.startTime)+" "+
 			fmt.Sprint(lightSource.wavelength), bb84.another.node.name)
 
-		message := kernel.Message{}
-		process := kernel.Process{Fnptr: bb84.beginPhotonPulse, Message: message, Owner: bb84.timeline}
-		event := kernel.Event{Time: bb84.startTime, Process: &process, Priority: 0}
-		bb84.timeline.Schedule(&event)
+		event := bb84.timeline.EventPool.Get().(*kernel.Event)
+		event.Time = bb84.startTime
+		event.Priority = 0
+		event.Process.Fnptr = bb84.beginPhotonPulse
+		event.Process.Owner = bb84.timeline
+		bb84.timeline.Schedule(event)
+
+		//message := kernel.Message{}
+		//process := kernel.Process{Fnptr: bb84.beginPhotonPulse, Message: message, Owner: bb84.timeline}
+		//event := kernel.Event{Time: bb84.startTime, Process: &process, Priority: 0}
+		//bb84.timeline.Schedule(&event)
 
 		bb84.lastKeyTime = bb84.timeline.Now()
 	} else {
@@ -393,6 +439,31 @@ func BB84Test() {
 	rand.Seed(seed)
 	//poisson := rng.NewPoissonGenerator(seed)
 	tl := kernel.Timeline{Name: "timeline", LookAhead: math.MaxInt64}
+
+	count := 0
+	var eventPool = sync.Pool{
+		New: func() interface{} {
+			message := &kernel.Message{}
+			process := &kernel.Process{}
+			process.Message = *message
+			event := &kernel.Event{}
+			event.Process = process
+			event.Priority = 0
+			count++
+			return event
+		},
+	}
+	tl.EventPool = &eventPool
+	/*
+		for i := 0; i <= 200; i++ {
+			message := &kernel.Message{}
+			process := &kernel.Process{}
+			process.Message = *message
+			event := &kernel.Event{}
+			event.Process = process
+			tl.EventPool.Put(event)
+		}
+	*/
 	tl.Init(math.MaxUint64, uint64(math.Pow10(11)))
 	tl.SetEndTime(uint64(math.Pow10(11))) //stop time is 100 ms
 	op := OpticalChannel{polarizationFidelity: QCFIDELITY, attenuation: ATTENUATION, distance: DISTANCE, lightSpeed: LIGHTSPEED}
@@ -446,20 +517,30 @@ func BB84Test() {
 	bba.addParent(&pa)
 	bbb.addParent(&pb)
 
-	message := kernel.Message{}
-	process := kernel.Process{Fnptr: pa.run, Message: message, Owner: &tl}
-	event := kernel.Event{Time: 0, Priority: 0, Process: &process}
-	tl.Schedule(&event)
+	event := tl.EventPool.Get().(*kernel.Event)
+	event.Time = 0
+	event.Priority = 0
+	event.Process.Fnptr = pa.run
+	event.Process.Owner = &tl
+	tl.Schedule(event)
+	//message := kernel.Message{}
+	//process := kernel.Process{Fnptr: pa.run, Message: message, Owner: &tl}
+	//event := kernel.Event{Time: 0, Priority: 0, Process: &process}
+	//tl.Schedule(&event)
 	kernel.Run([]*kernel.Timeline{&tl})
 
 	fmt.Println("latency (s): " + fmt.Sprintf("%f", bba.latency))
 	//fmt.Println("average throughput (Mb/s): "+fmt.Sprintf("%f",math.Pow10(-6) * sum(bba.throughputs) / len(bba.throughputs)))
 	fmt.Print("average throughput (Mb/s): ")
 	fmt.Println(1e-6 * floats.Sum(bba.throughPuts) / float64(len(bba.errorRates)))
-	fmt.Println("bit error rates:")
-	for i, e := range bba.errorRates {
-		fmt.Println("\tkey " + strconv.Itoa(i+1) + ":\t" + fmt.Sprintf("%f", e*100) + "%")
-	}
-	fmt.Println("sum error rates: ")
-	fmt.Print(floats.Sum(bba.errorRates) / float64(len(bba.errorRates)))
+	/*
+		fmt.Println("bit error rates:")
+		for i, e := range bba.errorRates {
+			fmt.Println("\tkey " + strconv.Itoa(i+1) + ":\t" + fmt.Sprintf("%f", e*100) + "%")
+		}
+	*/
+
+	fmt.Print("sum error rates: ")
+	fmt.Println(floats.Sum(bba.errorRates) / float64(len(bba.errorRates)))
+	fmt.Println("No. of events created: " + fmt.Sprint(count))
 }

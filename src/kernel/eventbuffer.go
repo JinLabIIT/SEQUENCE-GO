@@ -6,7 +6,7 @@ func (eb *EventBuffer) push(e *Event) {
 	own := e.Process.Owner
 	if (*eb)[own] == nil {
 		tmp_el := EventList{make([]*Event, 0, 0)}
-        // tmp_el := EventList{make([]*Event, 0, 100000)}
+		// tmp_el := EventList{make([]*Event, 0, 100000)}
 		(*eb)[own] = &tmp_el
 	}
 	evenlist := (*eb)[own]
@@ -16,9 +16,9 @@ func (eb *EventBuffer) push(e *Event) {
 func (eb *EventBuffer) clean() {
 	//(*eb)[timeline] = &EventList{}
 	// timeline.eventBuffer = make(EventBuffer)
-    for _, eventlist := range *eb {
-        eventlist.events = eventlist.events[:0]
-    }
+	for _, eventlist := range *eb {
+		eventlist.events = eventlist.events[:0]
+	}
 }
 
 func (eb *EventBuffer) size() int {

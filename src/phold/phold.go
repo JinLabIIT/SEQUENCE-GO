@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/leesper/go_rng"
+	rng "github.com/leesper/go_rng"
 	"kernel"
 	"os"
+	_ "runtime/trace"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -28,48 +30,71 @@ func (node *Node) nodeInit(timeline *kernel.Timeline, totalNodes int, name strin
 
 func initEvent(node *Node) {
 	message := kernel.Message{"receiver": node}
-	process := kernel.Process{Fnptr: node.send, Message: message, Owner: node.timeline}
-	delay := uint64(node.exp.Exp(1) * 100)
-	event := kernel.Event{Time: delay, Process: &process, Priority: 0}
+	process := kernel.Process{
+		Fnptr:   node.send,
+		Message: message,
+		Owner:   node.timeline,
+	}
+	event := kernel.Event{
+		Time:     uint64(node.exp.Exp(1) * 100),
+		Priority: 0,
+		Process:  &process,
+	}
 	node.timeline.Schedule(&event)
-}
-
-func createEvent(node *Node, message kernel.Message, priority uint, t uint64) *kernel.Event {
-	process := kernel.Process{Fnptr: node.send, Message: message, Owner: node.timeline}
-	event := &kernel.Event{Time: t, Process: &process, Priority: priority}
-	return event
 }
 
 func (node *Node) send(message kernel.Message) {
 	receiver := message["receiver"].(*Node)
 	target := node.ung.Int32Range(0, int32(node.totalNodes))
-	newMessage := kernel.Message{"receiver": node.otherNode[target]}
 	t := node.timeline.LookAhead + node.timeline.Now() + uint64(node.exp.Exp(1)*100)
-	event := createEvent(receiver, newMessage, 0, t)
+	event := node.timeline.EventPool.Get().(*kernel.Event)
+	event.Time = t
+	event.Priority = 0
+	event.Process.Message["receiver"] = node.otherNode[target]
+	event.Process.Fnptr = receiver.send
+	event.Process.Owner = receiver.timeline
 	node.timeline.Schedule(event)
 }
 
 func main() {
-	//phold experience
-	//arguments: totalThreads totalNodes
+	//trace.Start(os.Stderr)
+	//defer trace.Stop()
+	//defer debug.SetGCPercent(debug.SetGCPercent(-1))
+	//defer profile.Start().Stop()
 	fmt.Println("phold simulation")
 	seed := int64(123456)
 	totalThreads, _ := strconv.Atoi(os.Args[1])
 	totalNodes, _ := strconv.Atoi(os.Args[2]) // totalThreads <= totalNodes
-	endTime := uint64(5000)
-	initJobs := 800000
+	endTime := uint64(50000)
+	initJobs := 100000
 	lookAhead := uint64(100)
 	phold(initJobs, totalThreads, totalNodes, endTime, lookAhead, seed)
 }
 
 func phold(initJobs, totalThreads, totalNodes int, endTime, lookAhead uint64, seed int64) {
+
 	tl := make([]*kernel.Timeline, totalThreads)
 	ung := rng.NewUniformGenerator(seed)
+	count := 0
 	for i := 0; i < totalThreads; i++ {
 		tl[i] = &kernel.Timeline{}
 		tl[i].Init(lookAhead, endTime)
-		tl[i].Name = "Timeline " + strconv.Itoa(i) //covert int to string
+		tl[i].Name = "Timeline" + strconv.Itoa(i) //covert int to string
 		tl[i].SetEndTime(endTime)
+
+		var eventPool = sync.Pool{
+			New: func() interface{} {
+				message := &kernel.Message{}
+				process := &kernel.Process{}
+				process.Message = *message
+				event := &kernel.Event{}
+				event.Process = process
+				count++
+				return event
+			},
+		}
+
+		tl[i].EventPool = &eventPool
 	}
 
 	nodeList := make([]*Node, totalNodes)
@@ -86,4 +111,5 @@ func phold(initJobs, totalThreads, totalNodes int, endTime, lookAhead uint64, se
 	kernel.Run(tl)
 	now := time.Now()
 	fmt.Println("totalThreads is:", totalThreads, "Total consumption time is:", now.Sub(past))
+	fmt.Println(count)
 }

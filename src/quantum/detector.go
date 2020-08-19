@@ -60,13 +60,29 @@ func (d *Detector) addDarkCount(message kernel.Message) {
 	if d.on {
 		timeToNext := uint64(d.exp.Exp(1.0/d.darkCount)) * uint64(math.Pow10(12))
 		time := timeToNext + d.timeline.Now()
-		message1 := kernel.Message{}
-		process1 := kernel.Process{Fnptr: d.addDarkCount, Message: message1, Owner: d.timeline}
-		event1 := kernel.Event{Time: time, Process: &process1, Priority: 0}
-		message2 := kernel.Message{"darkGet": true}
-		process2 := kernel.Process{Fnptr: d.get, Message: message2, Owner: d.timeline}
-		event2 := kernel.Event{Time: time, Process: &process2, Priority: 0}
-		d.timeline.Schedule(&event1)
-		d.timeline.Schedule(&event2)
+
+		event := d.timeline.EventPool.Get().(*kernel.Event)
+		event.Time = time
+		event.Priority = 0
+		event.Process.Fnptr = d.addDarkCount
+		event.Process.Owner = d.timeline
+		d.timeline.Schedule(event)
+		event1 := d.timeline.EventPool.Get().(*kernel.Event)
+		event1.Time = time
+		event1.Priority = 0
+		event1.Process.Message["darkGet"] = true
+		event1.Process.Fnptr = d.get
+		event1.Process.Owner = d.timeline
+		d.timeline.Schedule(event1)
+		/*
+			message1 := kernel.Message{}
+			process1 := kernel.Process{Fnptr: d.addDarkCount, Message: message1, Owner: d.timeline}
+			event1 := kernel.Event{Time: time, Process: &process1, Priority: 0}
+			message2 := kernel.Message{"darkGet": true}
+			process2 := kernel.Process{Fnptr: d.get, Message: message2, Owner: d.timeline}
+			event2 := kernel.Event{Time: time, Process: &process2, Priority: 0}
+			d.timeline.Schedule(&event1)
+			d.timeline.Schedule(&event2)
+		*/
 	}
 }

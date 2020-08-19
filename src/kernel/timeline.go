@@ -1,16 +1,21 @@
 package kernel
 
 import (
+	"bufio"
 	"fmt"
 	"math"
+	"os"
 	_ "reflect"
 	_ "runtime"
+	"strconv"
 	"sync"
+	"time"
 	_ "time"
 )
 
 type Timeline struct {
 	Name           string // timeline name
+	dir            string
 	time           uint64
 	events         EventList
 	endTime        uint64 // execution time: [0, endTime)
@@ -21,9 +26,18 @@ type Timeline struct {
 	executedEvent  uint64
 	scheduledEvent uint64
 	SyncCounter    uint64
-	MessagePool    *sync.Pool
-	ProcessPool    *sync.Pool
 	EventPool      *sync.Pool
+	lucky          int
+	luckyCounter   int
+	past           int64
+}
+
+func (t *Timeline) writeToFile2(f *os.File) {
+	now := time.Now().UnixNano()
+	datawrite := bufio.NewWriter(f)
+	_, _ = datawrite.WriteString(strconv.FormatInt(now-t.past, 10) + "," + strconv.Itoa(t.luckyCounter))
+	datawrite.WriteString("\n")
+	datawrite.Flush()
 }
 
 func (t *Timeline) Init(lookahead, endTime uint64) {
@@ -33,6 +47,7 @@ func (t *Timeline) Init(lookahead, endTime uint64) {
 	t.scheduledEvent = 0
 	t.LookAhead = lookahead
 	t.endTime = endTime
+
 }
 
 func (t *Timeline) SetEndTime(endTime uint64) {
@@ -108,9 +123,8 @@ func (t *Timeline) syncWindow() {
 		}
 		t.time = event.Time
 		t.executedEvent += 1
+		t.luckyCounter += 1
 		event.Process.run()
-		t.MessagePool.Put(event.Process.Message)
-		t.ProcessPool.Put(event.Process)
 		t.EventPool.Put(event)
 	}
 }
@@ -120,6 +134,13 @@ func (t *Timeline) cleanEvenbuffer() {
 }
 
 func (t *Timeline) run(br *Barrier, wg *sync.WaitGroup) {
+	/*filename := "thread2/data"+ t.Name +".txt"
+	os.Create(filename)
+	f,err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY|os.O_CREATE,0644)
+	if err != nil{
+		fmt.Println(err)
+		f.Close()
+	}*/
 	for {
 		t.SyncCounter += 1
 		var maxListSize int
@@ -137,5 +158,6 @@ func (t *Timeline) run(br *Barrier, wg *sync.WaitGroup) {
 		}
 		br.waitExecution()
 	}
+	//f.Close()
 	wg.Done()
 }

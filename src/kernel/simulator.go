@@ -23,7 +23,7 @@ func Run(timelineList []*Timeline) {
 	wg.Wait()
 	elapsed := time.Since(tick)
 	fmt.Println("            Real execution time: ", elapsed)
-	//timelineReport(timelineList)
+	timelineReport(timelineList)
 }
 
 func timelineReport(timelineList []*Timeline) {

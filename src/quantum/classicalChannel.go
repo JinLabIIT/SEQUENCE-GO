@@ -27,9 +27,20 @@ func (cc *ClassicalChannel) transmit(msg string, source *Node) {
 	if cc.delay == float64(0) {
 		panic("classical channel delay is 0")
 	}
-	message := kernel.Message{"src": source.name, "message": msg}
 	futureTime := cc.timeline.Now() + uint64(math.Round(cc.delay))
-	process := kernel.Process{Fnptr: cc.receiver.receiveMessage, Message: message, Owner: cc.receiver.timeline}
-	event := kernel.Event{Time: futureTime, Process: &process, Priority: 0}
-	cc.timeline.Schedule(&event)
+
+	event := cc.timeline.EventPool.Get().(*kernel.Event)
+	event.Time = futureTime
+	event.Priority = 0
+	event.Process.Message["src"] = source.name
+	event.Process.Message["message"] = msg
+	event.Process.Fnptr = cc.receiver.receiveMessage
+	event.Process.Owner = cc.receiver.timeline
+	cc.timeline.Schedule(event)
+	/*
+		message := kernel.Message{"src": source.name, "message": msg}
+		process := kernel.Process{Fnptr: cc.receiver.receiveMessage, Message: message, Owner: cc.receiver.timeline}
+		event := kernel.Event{Time: futureTime, Process: &process, Priority: 0}
+		cc.timeline.Schedule(&event)
+	*/
 }
