@@ -5,6 +5,7 @@ import (
 	rng "github.com/leesper/go_rng"
 	"kernel"
 	"os"
+	"runtime/debug"
 	_ "runtime/trace"
 	"strconv"
 	"sync"
@@ -59,7 +60,7 @@ func (node *Node) send(message kernel.Message) {
 func main() {
 	//trace.Start(os.Stderr)
 	//defer trace.Stop()
-	//defer debug.SetGCPercent(debug.SetGCPercent(-1))
+	defer debug.SetGCPercent(debug.SetGCPercent(-1))
 	//defer profile.Start().Stop()
 	fmt.Println("phold simulation")
 	seed := int64(123456)

@@ -43,20 +43,21 @@ func (photon *Photon) setState(state []complex128) {
 
 func (photon *Photon) measure(basis *Basis, prob float64) int {
 	// only work for BB84
-	state := oneToTwo(photon.quantumState) // 1-D array to 2-D array
-	u := (*basis)[0]
-	v := (*basis)[1]
+	state := oneToTwo(&photon.quantumState) // 1-D array to 2-D array
+	u := &(*basis)[0]
+	v := &(*basis)[1]
 	// measurement operator
 	M0 := outer(arrayConj(u), u)
 	M1 := outer(arrayConj(v), v)
-	//projector0 := Basis{{1}}
-	//projector1 := M1
+
 	var projector0 *Basis
 	var projector1 *Basis
 	for _, p := range photon.entangledPhotons {
 		if reflect.DeepEqual(p, photon) {
 			projector0 = kron(&Basis{{1}}, M0)
+			//projector0 = &Basis{{complex(0.5,0),complex(0.5,0)},{complex(0.5,0),complex(0.5,0)}}
 			projector1 = kron(&Basis{{1}}, M1)
+			//fmt.Println(projector1)
 		} else {
 			projector0 = kron(&Basis{{1}}, &Basis{{1, 0}, {0, 1}})
 			projector1 = kron(&Basis{{1}}, &Basis{{1, 0}, {0, 1}})

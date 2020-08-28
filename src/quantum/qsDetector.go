@@ -67,6 +67,7 @@ func (qsd *QSDetector) get(message kernel.Message) {
 	} else if qsd.encodingType["name"].(string) == "timeBin" {
 		qsd._switch.get(photon)
 	}
+	qsd.timeline.PhotonPool.Put(photon)
 }
 
 func (qsd *QSDetector) clearDetectors(message kernel.Message) {

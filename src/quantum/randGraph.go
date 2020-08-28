@@ -11,6 +11,7 @@ import (
 	"math"
 	"os"
 	"partition"
+	"sync"
 	"time"
 )
 
@@ -57,12 +58,35 @@ func RandGraph(threadNum int, filename string, optimized bool) {
 	fmt.Println("n: ", n, "threadNum: ", threadNum, "lookAhead:", lookAhead)
 
 	rand.Seed(SEED)
-
+	count := 0
+	photonNumber := 0
 	tls := make([]*kernel.Timeline, threadNum)
 	for i := 0; i < threadNum; i++ {
 		tlName := fmt.Sprint("timeline", i)
 		tl := kernel.Timeline{Name: tlName}
 		tl.Init(uint64(lookAhead), uint64(SIM_TIME)) // 10 ms
+		var eventPool = sync.Pool{
+			New: func() interface{} {
+				message := &kernel.Message{}
+				process := &kernel.Process{}
+				process.Message = *message
+				event := &kernel.Event{}
+				event.Process = process
+				event.Priority = 0
+				count++
+				return event
+			},
+		}
+
+		var photonPool = sync.Pool{
+			New: func() interface{} {
+				photon := &Photon{}
+				photonNumber++
+				return photon
+			},
+		}
+		tl.EventPool = &eventPool
+		tl.PhotonPool = &photonPool
 		tls[i] = &tl
 	}
 
@@ -157,10 +181,17 @@ func RandGraph(threadNum int, filename string, optimized bool) {
 
 	// schedule initial events
 	for i := 0; i < len(parent_protocols); i++ {
-		message := kernel.Message{}
-		process := kernel.Process{Fnptr: parent_protocols[i].run, Message: message, Owner: parent_protocols[i].child.timeline}
-		event := kernel.Event{Time: 0, Priority: 0, Process: &process}
-		parent_protocols[i].child.timeline.Schedule(&event)
+		event := parent_protocols[i].child.timeline.EventPool.Get().(*kernel.Event)
+		event.Time = 0
+		event.Priority = 0
+		event.Process.Fnptr = parent_protocols[i].run
+		event.Process.Owner = parent_protocols[i].child.timeline
+		parent_protocols[i].child.timeline.Schedule(event)
+
+		//message := kernel.Message{}
+		//process := kernel.Process{Fnptr: parent_protocols[i].run, Message: message, Owner: parent_protocols[i].child.timeline}
+		//event := kernel.Event{Time: 0, Priority: 0, Process: &process}
+		//parent_protocols[i].child.timeline.Schedule(&event)
 	}
 
 	tick := time.Now().UnixNano()
@@ -206,6 +237,8 @@ func RandGraph(threadNum int, filename string, optimized bool) {
 	fmt.Println("sync counter:", tls[0].SyncCounter)
 	//fmt.Println("end time", tls[0].Now())
 	//WriteFile(tls[0].FuncTime)
+	fmt.Println("No. of events created: " + fmt.Sprint(count))
+	fmt.Println("No. of photons created: " + fmt.Sprint(photonNumber))
 }
 
 type Link struct {

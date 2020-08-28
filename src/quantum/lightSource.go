@@ -72,13 +72,14 @@ func (ls *LightSource) _emit(message kernel.Message) {
 	for i := 0; i < int(numPhotons); i++ {
 		//wavelength := ls.lineWidth*ls.grng.Gaussian(0, 1) + ls.wavelength
 		//creatPhoton = time.Now().UnixNano()
-		//newPhoton := Photon{location: ls.directReceiver, encodingType: ls.encodingType, quantumState: state}
-		newPhoton := Photon{encodingType: ls.encodingType, quantumState: state}
-		//endCreate = time.Now().UnixNano()
+		//newPhoton := Photon{encodingType: ls.encodingType, quantumState: state}
+		//newPhoton._init()
+		newPhoton := ls.timeline.PhotonPool.Get().(*Photon)
+		newPhoton.encodingType = ls.encodingType
+		newPhoton.quantumState = state
 		newPhoton._init()
-		//schedTime = time.Now().UnixNano()
-		ls.directReceiver.get(&newPhoton)
-		//schedEndTime = time.Now().UnixNano()
+
+		ls.directReceiver.get(newPhoton)
 		ls.photonCounter += 1
 	}
 	Time += sep

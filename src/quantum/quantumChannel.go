@@ -49,9 +49,7 @@ func (qc *QuantumChannel) get(photon *Photon) {
 		event.Process.Owner = qc.receiver.timeline
 		qc.timeline.Schedule(event)
 
-		//message := kernel.Message{"photon": photon}
-		//process := kernel.Process{Fnptr: qc.receiver.get, Message: message, Owner: qc.receiver.timeline}
-		//event := kernel.Event{Time: futureTime, Process: &process, Priority: 0}
-		//qc.timeline.Schedule(&event)
+	} else {
+		qc.timeline.PhotonPool.Put(photon)
 	}
 }

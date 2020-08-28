@@ -27,6 +27,7 @@ type Timeline struct {
 	scheduledEvent uint64
 	SyncCounter    uint64
 	EventPool      *sync.Pool
+	PhotonPool     *sync.Pool
 	lucky          int
 	luckyCounter   int
 	past           int64
@@ -47,7 +48,6 @@ func (t *Timeline) Init(lookahead, endTime uint64) {
 	t.scheduledEvent = 0
 	t.LookAhead = lookahead
 	t.endTime = endTime
-
 }
 
 func (t *Timeline) SetEndTime(endTime uint64) {

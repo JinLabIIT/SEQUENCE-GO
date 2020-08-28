@@ -4,6 +4,7 @@ import (
 	"golang.org/x/exp/errors/fmt"
 	"kernel"
 	"math"
+	"sync"
 )
 
 func Main(n int, threadNum int, lookAhead uint64) {
@@ -11,10 +12,25 @@ func Main(n int, threadNum int, lookAhead uint64) {
 
 	tls := make([]*kernel.Timeline, threadNum)
 	nodeOnThread := n / threadNum
+	count := 0
 	for i := 0; i < threadNum; i++ {
 		tlName := fmt.Sprint("timeline", i)
 		tl := kernel.Timeline{Name: tlName}
 		tl.Init(lookAhead, uint64(math.Pow10(10))) // 10 ms
+		var eventPool = sync.Pool{
+			New: func() interface{} {
+				message := &kernel.Message{}
+				process := &kernel.Process{}
+				process.Message = *message
+				event := &kernel.Event{}
+				event.Process = process
+				event.Priority = 0
+				count++
+				return event
+			},
+		}
+		tl.EventPool = &eventPool
+
 		tls[i] = &tl
 	}
 
@@ -92,10 +108,18 @@ func Main(n int, threadNum int, lookAhead uint64) {
 
 	// schedule initial events
 	for i := 0; i < len(parent_protocols); i++ {
-		message := kernel.Message{}
-		process := kernel.Process{Fnptr: parent_protocols[i].run, Message: message, Owner: tls[i/nodeOnThread]}
-		event := kernel.Event{Time: 0, Priority: 0, Process: &process}
-		tls[i/nodeOnThread].Schedule(&event)
+
+		event := tls[i/nodeOnThread].EventPool.Get().(*kernel.Event)
+		event.Time = 0
+		event.Priority = 0
+		event.Process.Fnptr = parent_protocols[i].run
+		event.Process.Owner = tls[i/nodeOnThread]
+		tls[i/nodeOnThread].Schedule(event)
+
+		//message := kernel.Message{}
+		//process := kernel.Process{Fnptr: parent_protocols[i].run, Message: message, Owner: tls[i/nodeOnThread]}
+		//event := kernel.Event{Time: 0, Priority: 0, Process: &process}
+		//tls[i/nodeOnThread].Schedule(&event)
 	}
 
 	kernel.Run(tls)
@@ -116,4 +140,5 @@ func Main(n int, threadNum int, lookAhead uint64) {
 
 	fmt.Println("sync counter:", tls[0].SyncCounter)
 	fmt.Println("end time", tls[0].Now())
+	fmt.Println("Created: ", count)
 }

@@ -33,10 +33,10 @@ func makeArray(length int, value int) []int {
 	return results
 }
 
-func outer(a, b []complex128) *Basis { // assume a and b are m*1 and 1*n matrix
-	result := make(Basis, len(a))
-	for i, c := range a {
-		for _, d := range b {
+func outer(a, b *[]complex128) *Basis { // assume a and b are m*1 and 1*n matrix
+	result := make(Basis, len(*a))
+	for i, c := range *a {
+		for _, d := range *b {
 			result[i] = append(result[i], c*d)
 		}
 	}
@@ -64,7 +64,7 @@ func kron(a, b *Basis) *Basis { // a->m*n b->i*j
 func (basis *Basis) transpose() *Basis {
 	m := len(*basis)
 	n := len((*basis)[0])
-	result := make(Basis, n)
+	result := make(Basis, n) //n = 1,2
 	for i := 0; i < m; i++ {
 		for j := 0; j < n; j++ {
 			result[j] = append(result[j], (*basis)[i][j])
@@ -90,7 +90,7 @@ func matMul(a, b *Basis) *Basis { // Matrix multiplication a->m*n b->n*p
 	if n != len(*b) {
 		panic("the columns of first matrix must equal to the rows of the second matrix")
 	}
-	result := make(Basis, m)
+	result := make(Basis, m) // m = 1,2
 	for i := 0; i < m; i++ {
 		for j := 0; j < p; j++ {
 			val := helpMatMul(a, b, i, j) //a[i][]*b[][j]
@@ -108,10 +108,10 @@ func helpMatMul(a, b *Basis, aIndex int, bIndex int) complex128 { // a[i][] * b[
 	return result
 }
 
-func oneToTwo(a []complex128) *Basis { //one dimension to two dimension array
+func oneToTwo(a *[]complex128) *Basis { //one dimension to two dimension array
 	result := make(Basis, 2)
-	for i := 0; i < len(a); i++ {
-		result[i] = []complex128{a[i]}
+	for i := 0; i < len(*a); i++ {
+		result[i] = []complex128{(*a)[i]}
 	}
 	return &result
 }
@@ -126,9 +126,9 @@ func divide(a *Basis, b float64) []complex128 { //1*n matrix divided by float
 	return result
 }
 
-func arrayConj(arr []complex128) []complex128 {
-	for i, ele := range arr {
-		arr[i] = cmplx.Conj(ele)
+func arrayConj(arr *[]complex128) *[]complex128 {
+	for i, ele := range *arr {
+		(*arr)[i] = cmplx.Conj(ele)
 	}
 	return arr
 }

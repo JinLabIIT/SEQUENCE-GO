@@ -453,7 +453,18 @@ func BB84Test() {
 			return event
 		},
 	}
+	photonNumber := 0
+	var photonPool = sync.Pool{
+		New: func() interface{} {
+			photon := &Photon{}
+			photonNumber++
+			return photon
+		},
+	}
+
 	tl.EventPool = &eventPool
+	tl.PhotonPool = &photonPool
+
 	/*
 		for i := 0; i <= 200; i++ {
 			message := &kernel.Message{}
@@ -523,10 +534,6 @@ func BB84Test() {
 	event.Process.Fnptr = pa.run
 	event.Process.Owner = &tl
 	tl.Schedule(event)
-	//message := kernel.Message{}
-	//process := kernel.Process{Fnptr: pa.run, Message: message, Owner: &tl}
-	//event := kernel.Event{Time: 0, Priority: 0, Process: &process}
-	//tl.Schedule(&event)
 	kernel.Run([]*kernel.Timeline{&tl})
 
 	fmt.Println("latency (s): " + fmt.Sprintf("%f", bba.latency))
@@ -543,4 +550,6 @@ func BB84Test() {
 	fmt.Print("sum error rates: ")
 	fmt.Println(floats.Sum(bba.errorRates) / float64(len(bba.errorRates)))
 	fmt.Println("No. of events created: " + fmt.Sprint(count))
+	fmt.Println("No. of photons created: " + fmt.Sprint(photonNumber))
+	fmt.Println("total photons: " + fmt.Sprint(ls.photonCounter))
 }
