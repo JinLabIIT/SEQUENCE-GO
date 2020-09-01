@@ -224,14 +224,14 @@ func randomSchedule(threadNum int, graph [][]partition.EdgeAttribute) ([]map[int
 		plan[thread_id][i] = true
 	}
 
-	pState := partition.NewPartitionState(graph, plan, 1, 1)
+	pState := partition.NewPartitionState(graph, plan, 1, 1,1)
 
 	//fmt.Println(plan)
 	return plan, pState.GetLookAhead()
 }
 
 func optimization(graph [][]partition.EdgeAttribute, plan []map[int]bool) ([]map[int]bool, float64) {
-	pState := partition.NewPartitionState(graph, plan, 1, 1)
+	pState := partition.NewPartitionState(graph, plan, 1, 1,1)
 	fmt.Println("initial plan: estimated exe time ", pState.Energy()/1e9, "sec")
 	tsp := goanneal.NewAnnealer(pState)
 	tsp.Steps = 100000
