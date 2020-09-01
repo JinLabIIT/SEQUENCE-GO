@@ -126,11 +126,18 @@ func divide(a *[][]complex128, b float64) []complex128 { //1*n matrix divided by
 	return result
 }
 
-func arrayConj(arr *[]complex128) *[]complex128 {
+func arrayConj(arr *[2]complex128) *[]complex128 {
+	/*
+		for i, ele := range *arr {
+			(*arr)[i] = cmplx.Conj(ele)
+		}
+		return arr
+	*/
+	ans := make([]complex128, 2)
 	for i, ele := range *arr {
-		(*arr)[i] = cmplx.Conj(ele)
+		ans[i] = cmplx.Conj(ele)
 	}
-	return arr
+	return &ans
 }
 
 func choice(array []int, n int, rng *rng.UniformGenerator) []int {

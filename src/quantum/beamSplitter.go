@@ -8,21 +8,21 @@ import (
 
 type BeamSplitter struct {
 	timeline  *kernel.Timeline // inherit
-	basis     [][]complex128
+	basis     [2][2]complex128
 	fidelity  float64
 	startTime uint64
 	frequency float64
-	basisList [][][]complex128
+	basisList [][2][2]complex128
 	rng       *rng.UniformGenerator
 }
 
 func (bs *BeamSplitter) _init() {
 	bs.rng = rng.NewUniformGenerator(123)
-	if bs.basis == nil {
-		bs.basis = [][]complex128{{complex128(1), complex128(0)}, {complex128(0), complex128(1)}}
-	}
+	//if bs.basis == nil {
+	bs.basis = [2][2]complex128{{complex128(1), complex128(0)}, {complex128(0), complex128(1)}}
+	//}
 	if bs.basisList == nil {
-		bs.basisList = [][][]complex128{bs.basis}
+		bs.basisList = [][2][2]complex128{bs.basis}
 	}
 	if bs.fidelity == 0 {
 		bs.fidelity = 1
@@ -43,6 +43,6 @@ func (bs *BeamSplitter) get(photon *Photon) int {
 	}
 }
 
-func (bs *BeamSplitter) setBasis(basis *[][]complex128) {
-	bs.basisList = [][][]complex128{*basis}
+func (bs *BeamSplitter) setBasis(basis *[2][2]complex128) {
+	bs.basisList = [][2][2]complex128{*basis}
 }

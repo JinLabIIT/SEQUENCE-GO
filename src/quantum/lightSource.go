@@ -60,7 +60,7 @@ func (ls *LightSource) _emit(message kernel.Message) {
 	for i := 0; i < int(numPhotons); i++ {
 		//wavelength := ls.lineWidth*ls.grng.Gaussian(0, 1) + ls.wavelength
 		//newPhoton := Photon{location: ls.directReceiver, encodingType: ls.encodingType, quantumState: state}
-		newPhoton := Photon{encodingType: ls.encodingType, firstState: state[0], secondState: state[1]}
+		newPhoton := Photon{encodingType: ls.encodingType, quantumState: [2]complex128{state[0], state[1]}}
 		newPhoton._init()
 		ls.directReceiver.get(&newPhoton)
 		ls.photonCounter += 1
