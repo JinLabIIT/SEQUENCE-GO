@@ -15,18 +15,18 @@ type Interferometer struct {
 
 func (inf *Interferometer) get(photon *Photon) {
 	detectorNum := rand.Intn(2)
-	quantumState := photon.quantumState
+	quantumState := []complex128{photon.firstState,photon.secondState}
 	time := 0
 	random := rand.Float64()
 
-	if quantumState[0] == complex(1, 0) && quantumState[1] == complex(0, 0) { // early
+	if photon.firstState == complex(1, 0) && photon.secondState == complex(0, 0) { // early
 		if random <= 0.5 {
 			time = 0
 		} else {
 			time = inf.pathDifference
 		}
 	}
-	if quantumState[0] == complex(0, 0) && quantumState[1] == complex(1, 0) { // late
+	if photon.firstState == complex(0, 0) && photon.secondState == complex(1, 0) { // late
 		if random <= 0.5 {
 			time = inf.pathDifference
 		} else {
@@ -89,7 +89,7 @@ func (_switch *Switch) get(photon *Photon) {
 	receiver := _switch.receiver[_switch.stateList[index]]
 	// check if receiver is detector, if we're using time bin, and if the photon is "late" to schedule measurement
 	if _switch.typeList[index] == 1 { //???
-		if photon.encodingType["name"] == "timeBin" && photon.measure(photon.encodingType["bases"].([]*Basis)[0], 0.0) == 1 { //question mark
+		if photon.encodingType["name"] == "timeBin" && photon.measure(photon.encodingType["bases"].([]*[][]complex128)[0], 0.0) == 1 { //question mark
 			time := _switch.timeline.Now() + photon.encodingType["binSeparation"].(uint64)
 			message := kernel.Message{}
 			process := kernel.Process{Fnptr: receiver.(*Detector).get, Message: message, Owner: _switch.timeline}

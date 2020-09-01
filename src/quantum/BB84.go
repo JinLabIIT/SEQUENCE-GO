@@ -457,9 +457,12 @@ func BB84Test() {
 	fmt.Print("average throughput (Mb/s): ")
 	fmt.Println(1e-6 * floats.Sum(bba.throughPuts) / float64(len(bba.errorRates)))
 	fmt.Println("bit error rates:")
+	/*
 	for i, e := range bba.errorRates {
 		fmt.Println("\tkey " + strconv.Itoa(i+1) + ":\t" + fmt.Sprintf("%f", e*100) + "%")
 	}
+	 */
 	fmt.Println("sum error rates: ")
-	fmt.Print(floats.Sum(bba.errorRates) / float64(len(bba.errorRates)))
+	fmt.Println(floats.Sum(bba.errorRates) / float64(len(bba.errorRates)))
+	//fmt.Print()
 }

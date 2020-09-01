@@ -87,7 +87,7 @@ func (qsd *QSDetector) getPhotonTimes() [][]uint64 {
 	return times
 }
 
-func (qsd *QSDetector) setBasis(basis *Basis) {
+func (qsd *QSDetector) setBasis(basis *[][]complex128) {
 	qsd.splitter.setBasis(basis)
 }
 

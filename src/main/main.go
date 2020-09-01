@@ -28,5 +28,6 @@ func b() {
 }
 
 func c() {
+	//defer debug.SetGCPercent(debug.SetGCPercent(-1))
 	quantum.BB84Test()
 }
