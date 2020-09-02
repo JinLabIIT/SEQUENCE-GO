@@ -92,6 +92,8 @@ func _meansure(quantumState [2]complex128, basis [2][2]complex128) ([2]complex12
 		copy(state0[:2], divide(matMul(projector0, state), math.Sqrt(prob0)))
 	}
 	value := [3]interface{}{state0, state1, prob0}
-	cache.Add(args, value)
+	if cache.Len() < cache.MaxEntries {
+		cache.Add(args, value)
+	}
 	return state0, state1, prob0
 }
