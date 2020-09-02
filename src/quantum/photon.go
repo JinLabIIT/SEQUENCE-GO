@@ -1,6 +1,7 @@
 package quantum
 
 import (
+	"github.com/golang/groupcache/lru"
 	"math"
 )
 
@@ -35,12 +36,38 @@ func (photon *Photon) measure(basis *[2][2]complex128, prob float64) int {
 	// only work for BB84
 	//state := oneToTwo(&photon.quantumState) // 1-D array to 2-D array
 	//fmt.Println()
-	state := oneToTwo(&[]complex128{photon.quantumState[0], photon.quantumState[1]})
-	u := &(*basis)[0]
-	v := &(*basis)[1]
+
+	state0, state1, prob0 := _meansure(photon.quantumState, *basis)
+	result := 0
+	if prob > prob0 { // given by the function
+		result = 1
+	}
+
+	if result == 1 {
+		photon.quantumState = state1
+	} else {
+		photon.quantumState = state0
+	}
+
+	return result
+}
+
+var cache = lru.New(2000)
+
+func _meansure(quantumState [2]complex128, basis [2][2]complex128) ([2]complex128, [2]complex128, float64) {
+	args := [2]interface{}{quantumState, basis}
+	res, exist := cache.Get(args)
+	if exist {
+		result := res.([3]interface{})
+		return result[0].([2]complex128), result[1].([2]complex128), result[2].(float64)
+	}
+
+	state := oneToTwo(&[]complex128{quantumState[0], quantumState[1]})
+	u := &(basis)[0]
+	v := &(basis)[1]
 	// measurement operator
-	M0 := outer(arrayConj(u), &[]complex128{(*basis)[0][0], (*basis)[0][1]})
-	M1 := outer(arrayConj(v), &[]complex128{(*basis)[1][0], (*basis)[1][1]})
+	M0 := outer(arrayConj(u), &[]complex128{(basis)[0][0], (basis)[0][1]})
+	M1 := outer(arrayConj(v), &[]complex128{(basis)[1][0], (basis)[1][1]})
 
 	var projector0 *[][]complex128
 	var projector1 *[][]complex128
@@ -53,17 +80,18 @@ func (photon *Photon) measure(basis *[2][2]complex128, prob float64) int {
 	tmp = matMul(tmp, state)
 	// tmp = state.conj().transpose() @ projector0.conj().transpose() @ projector0 @ state
 	prob0 := real((*tmp)[0][0])
-	result := 0
-	if prob > prob0 { // given by the function
-		result = 1
+
+	var state0 = [2]complex128{}
+	var state1 = [2]complex128{}
+
+	if prob0 < 1 {
+		copy(state1[:2], divide(matMul(projector1, state), math.Sqrt(1-prob0)))
 	}
 
-	var newState []complex128
-	if result == 1 {
-		newState = divide(matMul(projector1, state), math.Sqrt(1-prob0))
-	} else {
-		newState = divide(matMul(projector0, state), math.Sqrt(prob0))
+	if prob0 > 0 {
+		copy(state0[:2], divide(matMul(projector0, state), math.Sqrt(prob0)))
 	}
-	photon.quantumState = [2]complex128{newState[0], newState[1]}
-	return result
+	value := [3]interface{}{state0, state1, prob0}
+	cache.Add(args, value)
+	return state0, state1, prob0
 }
