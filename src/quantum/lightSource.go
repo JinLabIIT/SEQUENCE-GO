@@ -29,7 +29,7 @@ func (ls *LightSource) init() {
 }
 
 // can be optimized later
-func (ls *LightSource) emit(stateList *Basis) {
+func (ls *LightSource) emit(stateList *[][]complex128) {
 	//fmt.Println("emit message")
 	time := ls.timeline.Now()
 	sep := uint64(math.Round(math.Pow10(12) / ls.frequency))
@@ -63,7 +63,7 @@ func (ls *LightSource) emit(stateList *Basis) {
 
 func (ls *LightSource) _emit(message kernel.Message) {
 	//fmt.Println("_emit")
-	stateList := message["stateList"].(*Basis)
+	stateList := message["stateList"].(*[][]complex128)
 	numPhotons := message["numPhotons"].(int64)
 	state := message["state"].([]complex128)
 	index := message["index"].(int)

@@ -21,7 +21,7 @@ type ls struct {
 	phaseError     float64
 	photonCounter  int
 	poisson        *rng.PoissonGenerator
-	bs             *Basis
+	bs             *[][]complex128
 	tran           int
 	lookahead      uint64
 }
@@ -51,7 +51,7 @@ func (l *ls) transmit(message kernel.Message) {
 func (l *ls) emit(message kernel.Message) {
 	//fmt.Println("emit message")
 	time := l.timeline.Now()
-	stateList := message["stateList"].(*Basis)
+	stateList := message["stateList"].(*[][]complex128)
 	//sep := uint64(math.Round(math.Pow10(12) / l.frequency))
 	sep := uint64(0)
 	for i, state := range *stateList {
@@ -72,7 +72,7 @@ func (l *ls) emit(message kernel.Message) {
 
 func (l *ls) _emit(message kernel.Message) {
 	//fmt.Println("_emit")
-	stateList := message["stateList"].(*Basis)
+	stateList := message["stateList"].(*[][]complex128)
 	numPhotons := message["numPhotons"].(int64)
 	state := message["state"].([]complex128)
 	index := message["index"].(int)

@@ -31,10 +31,11 @@ func (node *Node) assignCChannel(cc *ClassicalChannel) {
 
 func (node *Node) sendQubits(basisList, bitList []int, sourceName string) {
 	encodingType := node.components[sourceName].(*LightSource).encodingType //???
-	stateList := make(Basis, 0, len(bitList))
+	stateList := make([][]complex128, 0, len(bitList))
 	for i, bit := range bitList {
-		basis := (encodingType["bases"].([][][]complex128))[basisList[i]]
-		state := basis[bit]
+		basis := (encodingType["bases"].([][2][2]complex128))[basisList[i]]
+		//state := basis[bit]
+		state := []complex128{basis[bit][0], basis[bit][1]}
 		stateList = append(stateList, state)
 	}
 	node.components[sourceName].(*LightSource).emit(&stateList)
@@ -114,11 +115,11 @@ func (node *Node) setBases(basisList []int, startTime uint64, frequency float64,
 		splitter.startTime = basisStartTime
 		splitter.frequency = frequency
 
-		splitterBasisList := make([]*Basis, 0, len(basisList))
+		splitterBasisList := make([][2][2]complex128, 0, len(basisList))
 		for _, d := range basisList {
-			base := encodingType["bases"].([][][]complex128)
-			tmp := Basis{base[d][0], base[d][1]}
-			splitterBasisList = append(splitterBasisList, &tmp)
+			base := encodingType["bases"].([][2][2]complex128)
+			tmp := [2][2]complex128{base[d][0], base[d][1]}
+			splitterBasisList = append(splitterBasisList, tmp)
 		}
 		splitter.basisList = splitterBasisList
 	} else if encodingType["name"] == "timeBin" {

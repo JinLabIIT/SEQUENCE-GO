@@ -15,12 +15,16 @@ func (photon *Photon) _init() {
 	}
 	if photon.quantumState[0] == 0 && photon.quantumState[1] == 0 { // nil
 		photon.quantumState = [2]complex128{complex128(1), complex128(0)}
+		//photon.firstState = complex128(1)
+		//photon.secondState = complex128(0)
 	}
 }
 
 func (photon *Photon) randomNoise(noise float64) {
 	angle := noise * 2 * math.Pi
 	photon.quantumState = [2]complex128{complex(math.Cos(angle), 0), complex(math.Sin(angle), 0)}
+	//photon.firstState = complex(math.Cos(angle), 0)
+	//photon.secondState = complex(math.Sin(angle), 0)
 }
 
 func (photon *Photon) setState(state [2]complex128) {

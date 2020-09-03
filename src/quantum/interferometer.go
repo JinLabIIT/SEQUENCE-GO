@@ -15,7 +15,7 @@ type Interferometer struct {
 
 func (inf *Interferometer) get(photon *Photon) {
 	detectorNum := rand.Intn(2)
-	quantumState := photon.quantumState
+	quantumState := []complex128{photon.quantumState[0], photon.quantumState[1]}
 	time := 0
 	random := rand.Float64()
 
@@ -97,7 +97,7 @@ func (_switch *Switch) get(photon *Photon) {
 	receiver := _switch.receiver[_switch.stateList[index]]
 	// check if receiver is detector, if we're using time bin, and if the photon is "late" to schedule measurement
 	if _switch.typeList[index] == 1 { //???
-		if photon.encodingType["name"] == "timeBin" && photon.measure(photon.encodingType["bases"].([]*Basis)[0], 0.0) == 1 { //question mark
+		if photon.encodingType["name"] == "timeBin" && photon.measure(photon.encodingType["bases"].([]*[2][2]complex128)[0], 0.0) == 1 { //question mark
 			time := _switch.timeline.Now() + photon.encodingType["binSeparation"].(uint64)
 
 			event := _switch.timeline.EventPool.Get().(*kernel.Event)

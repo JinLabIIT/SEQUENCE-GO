@@ -3,7 +3,7 @@ package quantum
 import "math"
 
 func polarization() map[string]interface{} {
-	bases := [][][]complex128{{{complex128(1), complex128(0)}, {complex128(0), complex128(1)}}, {{complex(math.Sqrt(0.5), 0), complex(math.Sqrt(0.5), 0)}, {complex(-math.Sqrt(0.5), 0), complex(math.Sqrt(0.5), 0)}}}
+	bases := [][2][2]complex128{{{complex128(1), complex128(0)}, {complex128(0), complex128(1)}}, {{complex(math.Sqrt(0.5), 0), complex(math.Sqrt(0.5), 0)}, {complex(-math.Sqrt(0.5), 0), complex(math.Sqrt(0.5), 0)}}}
 	polarization := map[string]interface{}{
 		"name":  "polarization",
 		"bases": bases,

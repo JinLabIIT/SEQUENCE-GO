@@ -1,11 +1,13 @@
 package quantum
 
 import (
-	"golang.org/x/exp/errors/fmt"
+	//"src/github.com/pkg/profile"
 	"testing"
 )
 
 func Test_randGraph(t *testing.T) {
+	//RandGraph(2, "../../tools/1.json", false)
+	//defer profile.Start().Stop()
 	type args struct {
 		threadNum int
 		path      string
