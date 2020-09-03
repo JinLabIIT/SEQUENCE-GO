@@ -76,7 +76,7 @@ func (ls *LightSource) _emit(message kernel.Message) {
 		//newPhoton._init()
 		newPhoton := ls.timeline.PhotonPool.Get().(*Photon)
 		newPhoton.encodingType = ls.encodingType
-		newPhoton.quantumState = state
+		newPhoton.quantumState = [2]complex128{state[0], state[1]}
 		newPhoton._init()
 
 		ls.directReceiver.get(newPhoton)

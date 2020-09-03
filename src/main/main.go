@@ -11,8 +11,8 @@ import (
 
 func main() {
 	//a()
-	b()
-	//c()
+	//b()
+	c()
 }
 func a() {
 	defer profile.Start().Stop()
