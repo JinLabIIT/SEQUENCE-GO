@@ -13,6 +13,7 @@ func Main(n int, threadNum int, lookAhead uint64) {
 	tls := make([]*kernel.Timeline, threadNum)
 	nodeOnThread := n / threadNum
 	count := 0
+	photonNumber := 0
 	for i := 0; i < threadNum; i++ {
 		tlName := fmt.Sprint("timeline", i)
 		tl := kernel.Timeline{Name: tlName}
@@ -29,7 +30,16 @@ func Main(n int, threadNum int, lookAhead uint64) {
 				return event
 			},
 		}
+
+		var photonPool = sync.Pool{
+			New: func() interface{} {
+				photon := &Photon{}
+				photonNumber++
+				return photon
+			},
+		}
 		tl.EventPool = &eventPool
+		tl.PhotonPool = &photonPool
 
 		tls[i] = &tl
 	}

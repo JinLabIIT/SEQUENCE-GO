@@ -31,7 +31,7 @@ func b() {
 }
 
 func c() {
-	defer profile.Start().Stop()
+	//defer profile.Start().Stop()
 	//fmt.Println("hello world")
 	quantum.BB84Test()
 }
