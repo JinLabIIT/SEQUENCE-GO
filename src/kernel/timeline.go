@@ -125,6 +125,9 @@ func (t *Timeline) syncWindow() {
 		t.executedEvent += 1
 		t.luckyCounter += 1
 		event.Process.run()
+		if event.Process.Message["StateList"] != nil{
+			event.Process.Message["StateList"] = nil
+		}
 		t.EventPool.Put(event)
 	}
 }

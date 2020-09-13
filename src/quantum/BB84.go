@@ -476,7 +476,7 @@ func BB84Test() {
 		}
 	*/
 	tl.Init(math.MaxUint64, uint64(math.Pow10(11)))
-	tl.SetEndTime(uint64(math.Pow10(11))) //stop time is 100 ms
+	tl.SetEndTime(uint64(math.Pow10(12))) //stop time is 100 ms
 	op := OpticalChannel{polarizationFidelity: QCFIDELITY, attenuation: ATTENUATION, distance: DISTANCE, lightSpeed: LIGHTSPEED}
 	qc := QuantumChannel{name: "qc", timeline: &tl, OpticalChannel: op}
 	qc.init()

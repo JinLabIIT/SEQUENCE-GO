@@ -17,7 +17,7 @@ func Main(n int, threadNum int, lookAhead uint64) {
 	for i := 0; i < threadNum; i++ {
 		tlName := fmt.Sprint("timeline", i)
 		tl := kernel.Timeline{Name: tlName}
-		tl.Init(lookAhead, uint64(math.Pow10(10))) // 10 ms
+		tl.Init(lookAhead, uint64(math.Pow10(11))) // 10 ms
 		var eventPool = sync.Pool{
 			New: func() interface{} {
 				message := &kernel.Message{}
