@@ -6,6 +6,7 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestPriorityQueue_Len(t *testing.T) {
@@ -329,4 +330,28 @@ func TestEventList_merge(t *testing.T) {
 			os.Exit(-1)
 		}
 	}
+}
+
+func TestSpeed(t *testing.T) {
+	tick := time.Now()
+	queueSize := 10000
+	round := 100000000
+	lq := EventList{}
+	for i := 0; i < queueSize; i++ {
+		lq.push(&Event{
+			Time: uint64(rand.Intn(10000)),
+		})
+	}
+
+	last_ts := uint64(0)
+	for i := 0; i < round; i++ {
+		event := lq.pop()
+		if last_ts > event.Time {
+			t.Error("Pop wrong")
+		}
+		last_ts = event.Time
+		event.Time += uint64(rand.Intn(10000))
+		lq.push(event)
+	}
+	fmt.Println(time.Since(tick))
 }
