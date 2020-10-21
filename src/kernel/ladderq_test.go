@@ -1,9 +1,8 @@
-package ladderq
+package kernel
 
 import (
 	"golang.org/x/exp/errors/fmt"
 	"golang.org/x/exp/rand"
-	"kernel"
 	"reflect"
 	"testing"
 	"time"
@@ -12,7 +11,7 @@ import (
 func TestRung_initialize(t *testing.T) {
 	type fields struct {
 		bucketWidth uint64
-		buckets     [][]*kernel.Event
+		buckets     [][]*Event
 		rCur        uint64
 		rStart      uint64
 	}
@@ -25,7 +24,7 @@ func TestRung_initialize(t *testing.T) {
 		fields fields
 		args   args
 	}{
-		{"test1", fields{1, [][]*kernel.Event{}, 0, 0}, args{10, 100}},
+		{"test1", fields{1, [][]*Event{}, 0, 0}, args{10, 100}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -50,12 +49,12 @@ func TestRung_initialize(t *testing.T) {
 func TestRung_nextBucket(t *testing.T) {
 	type fields struct {
 		bucketWidth uint64
-		buckets     [][]*kernel.Event
+		buckets     [][]*Event
 		rCur        uint64
 		rStart      uint64
 	}
 
-	event := kernel.Event{
+	event := Event{
 		1,
 		0,
 		nil,
@@ -63,27 +62,27 @@ func TestRung_nextBucket(t *testing.T) {
 	tests := []struct {
 		name      string
 		fields    fields
-		want      []*kernel.Event
+		want      []*Event
 		expectCur uint64
 	}{
 		{"no bucket", fields{
 			bucketWidth: 1,
-			buckets:     [][]*kernel.Event{},
+			buckets:     [][]*Event{},
 			rCur:        0,
 			rStart:      0,
-		}, []*kernel.Event{}, 1},
+		}, []*Event{}, 1},
 		{"has bucket", fields{
 			bucketWidth: 1,
-			buckets:     [][]*kernel.Event{{&event}},
+			buckets:     [][]*Event{{&event}},
 			rCur:        0,
 			rStart:      0,
-		}, []*kernel.Event{&event}, 1},
+		}, []*Event{&event}, 1},
 		{"has event in the second bucket", fields{
 			bucketWidth: 1,
-			buckets:     [][]*kernel.Event{{}, {&event}},
+			buckets:     [][]*Event{{}, {&event}},
 			rCur:        1,
 			rStart:      0,
-		}, []*kernel.Event{&event}, 2},
+		}, []*Event{&event}, 2},
 	}
 
 	for _, tt := range tests {
@@ -108,12 +107,12 @@ func TestRung_nextBucket(t *testing.T) {
 func TestRung_load(t *testing.T) {
 	type fields struct {
 		bucketWidth uint64
-		buckets     [][]*kernel.Event
+		buckets     [][]*Event
 		rCur        uint64
 		rStart      uint64
 	}
 	type args struct {
-		events []*kernel.Event
+		events []*Event
 	}
 	tests := []struct {
 		name   string
@@ -122,10 +121,10 @@ func TestRung_load(t *testing.T) {
 	}{
 		{"buckets are created", fields{
 			bucketWidth: 1,
-			buckets:     [][]*kernel.Event{{}, {}, {}, {}, {}},
+			buckets:     [][]*Event{{}, {}, {}, {}, {}},
 			rCur:        0,
 			rStart:      0,
-		}, args{[]*kernel.Event{
+		}, args{[]*Event{
 			{
 				Time: 0,
 			},
@@ -145,10 +144,10 @@ func TestRung_load(t *testing.T) {
 
 		{"buckets are not created", fields{
 			bucketWidth: 1,
-			buckets:     [][]*kernel.Event{},
+			buckets:     [][]*Event{},
 			rCur:        0,
 			rStart:      0,
-		}, args{[]*kernel.Event{
+		}, args{[]*Event{
 			{
 				Time: 0,
 			},
@@ -223,7 +222,7 @@ func TestLadderQ(t *testing.T) {
 	lq := NewLadderQ(50, 5)
 	ts := []uint64{9, 8, 7, 6, 5, 4, 3}
 	for i := 0; i < len(ts); i++ {
-		lq.Push(&kernel.Event{
+		lq.Push(&Event{
 			Time: ts[i],
 		})
 	}
@@ -231,7 +230,7 @@ func TestLadderQ(t *testing.T) {
 		t.Error("Push is wrong")
 	}
 
-	events := []*kernel.Event{}
+	events := []*Event{}
 
 	for !lq.Empty() {
 		events = append(events, lq.Pop())
@@ -251,7 +250,7 @@ func TestSpeed(t *testing.T) {
 	round := 100000000
 	lq := NewLadderQ(50, 8)
 	for i := 0; i < queueSize; i++ {
-		lq.Push(&kernel.Event{
+		lq.Push(&Event{
 			Time: uint64(rand.Intn(10000)),
 		})
 	}
