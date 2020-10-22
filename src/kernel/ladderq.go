@@ -194,6 +194,7 @@ func (lq *LadderQ) Top() *Event {
 	} else {
 		event := lq.Pop()
 		lq.bottom = append([]*Event{event}, lq.bottom...)
+		lq.counter++
 		return event
 	}
 }
