@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func randGraph(threadNum int, filename string, optimized bool) {
+func RandGraph(threadNum int, filename string, optimized bool) {
 	SEED := uint64(0)
 	SIM_TIME := 2e10
 

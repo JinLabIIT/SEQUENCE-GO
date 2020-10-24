@@ -2,6 +2,7 @@ package quantum
 
 import (
 	"fmt"
+	"math"
 	"testing"
 )
 
@@ -73,7 +74,7 @@ func Test2(t *testing.T) {
 }
 
 func Test3(t *testing.T) {
-	Main(64, 4, 50000000)
+	Main(64, 4, 50000000, uint64(math.Pow10(11)))
 }
 
 /*func Test123(t *testing.T){

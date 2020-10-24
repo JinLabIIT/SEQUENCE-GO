@@ -6,7 +6,7 @@ import (
 	"math"
 )
 
-func Main(n int, threadNum int, lookAhead uint64) {
+func Main(n int, threadNum int, lookAhead, durTime uint64) {
 	fmt.Println("Ring QKD Network (sequential)")
 
 	tls := make([]*kernel.Timeline, threadNum)
@@ -14,7 +14,7 @@ func Main(n int, threadNum int, lookAhead uint64) {
 	for i := 0; i < threadNum; i++ {
 		tlName := fmt.Sprint("timeline", i)
 		tl := kernel.Timeline{Name: tlName}
-		tl.Init(lookAhead, uint64(math.Pow10(10))) // 10 ms
+		tl.Init(lookAhead, durTime)
 		tls[i] = &tl
 	}
 
@@ -31,9 +31,11 @@ func Main(n int, threadNum int, lookAhead uint64) {
 	}
 
 	// create classical channels
+	lightSpeed := 2 * math.Pow10(-4)
+	distance := lightSpeed * float64(lookAhead)
 
 	for i := 0; i < totalNodes; i++ {
-		op := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, distance: 10 * math.Pow10(3), lightSpeed: 2 * math.Pow10(-4)}
+		op := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, distance: distance, lightSpeed: lightSpeed}
 		ccName := fmt.Sprint("cc_", nodes[i].name, "_", nodes[(i+1)%totalNodes].name)
 		cc := &ClassicalChannel{name: ccName, OpticalChannel: op, delay: 1 * math.Pow10(9)}
 		cc.SetSender(nodes[i])
@@ -49,7 +51,7 @@ func Main(n int, threadNum int, lookAhead uint64) {
 
 	// create light source, detector and quantum channels
 	for i := 0; i < totalNodes; i++ {
-		op := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, distance: 10 * math.Pow10(3), lightSpeed: 2 * math.Pow10(-4)}
+		op := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, distance: distance, lightSpeed: lightSpeed}
 		qcName := fmt.Sprint("qc_", nodes[i].name, "_", nodes[(i+1)%totalNodes].name)
 		qc := QuantumChannel{name: qcName, timeline: tls[i/nodeOnThread], OpticalChannel: op}
 		qc.init()
