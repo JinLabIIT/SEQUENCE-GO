@@ -10,7 +10,8 @@ import (
 )
 
 func main() {
-	f, err := os.OpenFile("main.log", os.O_RDWR|os.O_CREATE, 0755)
+	filename := os.Args[1]
+	f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
 		log.Fatal(err)
 	}
