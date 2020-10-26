@@ -12,7 +12,7 @@ import (
 type Timeline struct {
 	Name           string // timeline name
 	time           uint64
-	events         EventList
+	events         *LadderQ
 	endTime        uint64 // execution time: [0, endTime)
 	nextStopTime   uint64
 	eventBuffer    EventBuffer
@@ -25,7 +25,7 @@ type Timeline struct {
 
 func (t *Timeline) Init(lookahead, endTime uint64) {
 	t.eventBuffer = make(EventBuffer)
-	t.events = EventList{make([]*Event, 0, 0)}
+	t.events = NewLadderQ(50, 8)
 	t.executedEvent = 0
 	t.scheduledEvent = 0
 	t.LookAhead = lookahead
@@ -46,45 +46,28 @@ func (t *Timeline) Schedule(event *Event) {
 	}
 	if t == event.Process.Owner {
 		t.scheduledEvent += 1
-		t.events.push(event)
+		t.events.Push(event)
 	} else {
 		t.eventBuffer.push(event)
 	}
 }
 
 func (t *Timeline) getCrossTimelineEvents() {
-	var eb []*EventList
-	eb = append(eb, &t.events)
-
 	for i := 0; i < len(t.otherTimeline); i++ {
-		var tmp *EventList
-		if t.otherTimeline[i].eventBuffer[t] == nil || t.otherTimeline[i].eventBuffer[t].size() == 0 {
+		if t.otherTimeline[i].eventBuffer[t] == nil {
 			continue
 		}
-		tmp = t.otherTimeline[i].eventBuffer[t]
-		t.scheduledEvent += uint64(tmp.size())
-		eb = append(eb, tmp)
-	}
-	for len(eb) != 1 {
-		//memory question
-		var eb2 []*EventList
-		for i := 0; i < len(eb); i += 2 {
-			if i+1 < len(eb) {
-				eb[i].merge(*(eb[i+1]))
-				eb2 = append(eb2, eb[i])
-			} else {
-				eb2 = append(eb2, eb[i])
-			}
+		for j := 0; j < len(t.otherTimeline[i].eventBuffer[t]); j++ {
+			t.events.Push(t.otherTimeline[i].eventBuffer[t][j])
 		}
-		eb = eb2
 	}
 }
 
 func (t *Timeline) minNextStopTime() uint64 {
-	if t.events.size() == 0 { //Eventlist is empty in this timeline
+	if t.events.Size() == 0 { //Eventlist is empty in this timeline
 		return uint64(math.MaxInt64)
 	}
-	return t.events.top().Time + t.LookAhead
+	return t.events.Top().Time + t.LookAhead
 }
 
 func (t *Timeline) updateNextStopTime(nextStop uint64) {
@@ -97,8 +80,8 @@ func (t *Timeline) updateNextStopTime(nextStop uint64) {
 func (t *Timeline) syncWindow() {
 	//past:= time.Now().UnixNano()
 	//NoEvents := t.executedEvent
-	for t.events.size() != 0 && t.events.top().Time < t.nextStopTime {
-		event := t.events.pop()
+	for t.events.Size() != 0 && t.events.Top().Time < t.nextStopTime {
+		event := t.events.Pop()
 		if event.Time < t.time {
 			err_msg := fmt.Sprint("running an earlier event now: ", t.time, " event: ", event.Time)
 			panic(err_msg)
@@ -119,7 +102,7 @@ func (t *Timeline) run(br *Barrier, wg *sync.WaitGroup) {
 		var maxListSize int
 		t.getCrossTimelineEvents()
 		nextStop := t.minNextStopTime()
-		nextStop, maxListSize = br.waitEventExchange(nextStop, t.events.size())
+		nextStop, maxListSize = br.waitEventExchange(nextStop, t.events.Size())
 		if maxListSize == 0 {
 			break
 		}
