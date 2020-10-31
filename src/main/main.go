@@ -10,9 +10,9 @@ import (
 )
 
 func main() {
-	// a()
+	a()
 	// b()
-	c()
+	//c()
 }
 func a() {
 	totalNodes, _ := strconv.Atoi(os.Args[1])

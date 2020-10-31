@@ -3,6 +3,7 @@ package quantum
 import (
 	"github.com/golang/groupcache/lru"
 	"math"
+	"sync"
 )
 
 type Photon struct {
@@ -53,10 +54,13 @@ func (photon *Photon) measure(basis *[2][2]complex128, prob float64) int {
 }
 
 var cache = lru.New(2000)
+var rwMutex = &sync.RWMutex{}
 
 func _meansure(quantumState [2]complex128, basis [2][2]complex128) ([2]complex128, [2]complex128, float64) {
 	args := [2]interface{}{quantumState, basis}
+	rwMutex.RLock()
 	res, exist := cache.Get(args)
+	rwMutex.RUnlock()
 	if exist {
 		result := res.([3]interface{})
 		return result[0].([2]complex128), result[1].([2]complex128), result[2].(float64)
@@ -93,7 +97,9 @@ func _meansure(quantumState [2]complex128, basis [2][2]complex128) ([2]complex12
 	}
 	value := [3]interface{}{state0, state1, prob0}
 	if cache.Len() < cache.MaxEntries {
+		rwMutex.Lock()
 		cache.Add(args, value)
+		rwMutex.Unlock()
 	}
 	return state0, state1, prob0
 }
