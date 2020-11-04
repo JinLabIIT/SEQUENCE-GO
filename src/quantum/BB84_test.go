@@ -3,6 +3,8 @@ package quantum
 import (
 	"fmt"
 	"math"
+	"os"
+	"runtime/pprof"
 	"testing"
 )
 
@@ -63,6 +65,11 @@ import (
 
 func Test(t *testing.T) {
 	fmt.Println("start test")
+	profile, _ := os.Create("cpu_prof")
+	memoProfile, _ := os.Create("memo_prof")
+	pprof.StartCPUProfile(profile)
+	defer pprof.StopCPUProfile()
+	defer pprof.WriteHeapProfile(memoProfile)
 	BB84Test()
 	fmt.Println("test finished")
 }
