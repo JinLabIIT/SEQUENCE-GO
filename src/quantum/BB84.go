@@ -4,7 +4,6 @@ import (
 	"github.com/gonum/floats"
 	"github.com/leesper/go_rng"
 	"golang.org/x/exp/errors/fmt"
-	"golang.org/x/exp/rand"
 	"kernel"
 	"math"
 	"strconv"
@@ -43,8 +42,8 @@ type BB84 struct {
 	rng            *rng.UniformGenerator
 }
 
-func (bb84 *BB84) _init() {
-	bb84.rng = rng.NewUniformGenerator(123)
+func (bb84 *BB84) _init(seed int64) {
+	bb84.rng = rng.NewUniformGenerator(seed)
 	bb84.ready = true
 	if bb84.sourceName == "" {
 		bb84.sourceName = "lightSource"
@@ -388,19 +387,18 @@ func BB84Test() {
 	//COUNT_RATE := 5e7
 	DISTANCE := 10 * math.Pow10(3)
 	//KEYSIZE := 512
-	seed := uint64(156)
+	seed := int64(156)
 	fmt.Println("Polarization:")
-	rand.Seed(seed)
+	//rand.Seed(seed)
 	//poisson := rng.NewPoissonGenerator(seed)
 	tl := kernel.Timeline{Name: "timeline", LookAhead: math.MaxInt64}
-	tl.Init(math.MaxUint64, uint64(math.Pow10(11)))
-	tl.SetEndTime(uint64(math.Pow10(11))) //stop time is 100 ms
+	tl.Init(math.MaxUint64, uint64(math.Pow10(12)))
 	op := OpticalChannel{polarizationFidelity: QCFIDELITY, attenuation: ATTENUATION, distance: DISTANCE, lightSpeed: LIGHTSPEED}
 	qc := QuantumChannel{name: "qc", timeline: &tl, OpticalChannel: op}
 	qc.init()
 	// Alice
 	ls := LightSource{name: "Alice.lightSource", timeline: &tl, frequency: 80 * math.Pow10(6), meanPhotonNum: LIGHTSOURCE_MEAN, directReceiver: &qc, wavelength: WAVELEN, encodingType: polarization()}
-	ls.init()
+	ls.init(seed)
 	components := map[string]interface{}{"lightSource": &ls}
 	alice := Node{name: "alice", timeline: &tl, components: components}
 	qc.setSender(&ls)
@@ -410,7 +408,7 @@ func BB84Test() {
 
 	qsd := QSDetector{name: "bob.qsdetector", timeline: &tl, detectors: detectors}
 	qsd._init()
-	qsd.init()
+	qsd.init(seed)
 
 	components = map[string]interface{}{"detector": &qsd}
 	bob := Node{name: "bob", timeline: &tl, components: components}
@@ -431,8 +429,8 @@ func BB84Test() {
 	//BB84
 	bba := BB84{name: "bba", timeline: &tl, role: 0} //alice.role = 0
 	bbb := BB84{name: "bbb", timeline: &tl, role: 1} //bob.role = 1
-	bba._init()
-	bbb._init()
+	bba._init(seed)
+	bbb._init(seed + 1)
 	bba.assignNode(&alice, cca.delay, int(qc.distance/qc.lightSpeed))
 	bbb.assignNode(&bob, cca.delay, int(qc.distance/qc.lightSpeed))
 	bba.another = &bbb
@@ -458,10 +456,10 @@ func BB84Test() {
 	fmt.Println(1e-6 * floats.Sum(bba.throughPuts) / float64(len(bba.errorRates)))
 	fmt.Println("bit error rates:")
 	/*
-	for i, e := range bba.errorRates {
-		fmt.Println("\tkey " + strconv.Itoa(i+1) + ":\t" + fmt.Sprintf("%f", e*100) + "%")
-	}
-	 */
+		for i, e := range bba.errorRates {
+			fmt.Println("\tkey " + strconv.Itoa(i+1) + ":\t" + fmt.Sprintf("%f", e*100) + "%")
+		}
+	*/
 	fmt.Println("sum error rates: ")
 	fmt.Println(floats.Sum(bba.errorRates) / float64(len(bba.errorRates)))
 	//fmt.Print()

@@ -35,9 +35,9 @@ type Detector struct {
 //
 //}
 
-func (d *Detector) init() {
-	d.rng = rng.NewUniformGenerator(123)
-	d.exp = rng.NewExpGenerator(123)
+func (d *Detector) init(seed int64) {
+	d.rng = rng.NewUniformGenerator(seed)
+	d.exp = rng.NewExpGenerator(seed + 1)
 	d.on = true
 	d.addDarkCount(kernel.Message{})
 }

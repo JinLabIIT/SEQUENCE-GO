@@ -7,25 +7,27 @@ import (
 )
 
 type LightSource struct {
-	name           string           // inherit
-	timeline       *kernel.Timeline // inherit
-	frequency      float64
-	wavelength     float64
-	lineWidth      float64
-	meanPhotonNum  float64
-	encodingType   map[string]interface{}
-	directReceiver *QuantumChannel
-	phaseError     float64
-	photonCounter  int
-	poisson        *rng.PoissonGenerator
-	rng            *rng.UniformGenerator
-	grng           *rng.GaussianGenerator
+	name            string           // inherit
+	timeline        *kernel.Timeline // inherit
+	frequency       float64
+	wavelength      float64
+	lineWidth       float64
+	meanPhotonNum   float64
+	encodingType    map[string]interface{}
+	directReceiver  *QuantumChannel
+	phaseError      float64
+	photonCounter   int
+	poisson         *rng.PoissonGenerator
+	rng             *rng.UniformGenerator
+	grng            *rng.GaussianGenerator
+	event_counter   int
+	first_emit_time uint64
 }
 
-func (ls *LightSource) init() {
-	ls.rng = rng.NewUniformGenerator(123)
-	ls.grng = rng.NewGaussianGenerator(123)
-	ls.poisson = rng.NewPoissonGenerator(123)
+func (ls *LightSource) init(seed int64) {
+	ls.rng = rng.NewUniformGenerator(seed)
+	ls.grng = rng.NewGaussianGenerator(seed)
+	ls.poisson = rng.NewPoissonGenerator(seed)
 }
 
 // can be optimized later
@@ -51,6 +53,13 @@ func (ls *LightSource) emit(stateList *[][]complex128) {
 
 func (ls *LightSource) _emit(message kernel.Message) {
 	//fmt.Println("_emit")
+	if ls.first_emit_time == 0 {
+		//ls.first_emit_time = ls.timeline.Now()
+	}
+	ls.event_counter += 1
+	//if ls.timeline.Now() >= ls.timeline.OutputTime {
+	//	fmt.Println(ls.timeline.Now(), ls.event_counter)
+	//}
 	stateList := message["stateList"].(*[][]complex128)
 	numPhotons := message["numPhotons"].(int64)
 	state := message["state"].([]complex128)

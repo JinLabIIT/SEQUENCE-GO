@@ -103,7 +103,7 @@ func RandGraph(threadNum int, filename string, optimized bool) {
 	}
 
 	// create light source, detector and quantum channels
-	for _, link := range randomLinks {
+	for i, link := range randomLinks {
 		source := link.source
 		target := link.target
 		op := OpticalChannel{polarizationFidelity: QCFIDELITY, attenuation: ATTENUATION, distance: link.distance, lightSpeed: LIGHTSPEED}
@@ -112,7 +112,7 @@ func RandGraph(threadNum int, filename string, optimized bool) {
 		qc.init()
 		lsName := fmt.Sprint(nodes[source].name, ".lightsource")
 		ls := LightSource{name: lsName, timeline: nodes[source].timeline, frequency: link.frequency, meanPhotonNum: LIGHTSOURCE_MEAN, directReceiver: &qc, wavelength: WAVELEN, encodingType: polarization()}
-		ls.init()
+		ls.init(int64(i))
 		qc.setSender(&ls)
 		detectors := []*Detector{{efficiency: DETECTOR_EFFICIENCY, darkCount: DARKCOUNT, timeResolution: TIME_RESOLUTION, countRate: COUNT_RATE}, {efficiency: DETECTOR_EFFICIENCY, darkCount: DARKCOUNT, timeResolution: TIME_RESOLUTION, countRate: COUNT_RATE}}
 		qsdName := fmt.Sprint(nodes[target].name, ".qsdetector")
@@ -121,14 +121,14 @@ func RandGraph(threadNum int, filename string, optimized bool) {
 		sourceName := fmt.Sprintf("lightSource.%d.%d", source, target)
 		nodes[source].components[sourceName] = &ls
 		qsd._init()
-		qsd.init()
+		qsd.init(int64(i))
 		detectorName := fmt.Sprintf("detector.%d.%d", source, target)
 		nodes[target].components[detectorName] = &qsd
 	}
 
 	// create BB84
 	parent_protocols := make([]*Parent, 0)
-	for _, link := range randomLinks {
+	for i, link := range randomLinks {
 		source := link.source
 		target := link.target
 		sourceName := fmt.Sprintf("lightSource.%d.%d", source, target)
@@ -137,8 +137,8 @@ func RandGraph(threadNum int, filename string, optimized bool) {
 		bba := BB84{name: bbName, timeline: nodes[source].timeline, role: 0, sourceName: sourceName, detectorName: detectorName} //alice.role = 0
 		bbName = fmt.Sprint(nodes[target].name, ".bbb.", target)
 		bbb := BB84{name: bbName, timeline: nodes[target].timeline, role: 1, sourceName: sourceName, detectorName: detectorName} //bob.role = 1
-		bba._init()
-		bbb._init()
+		bba._init(int64(i * 2))
+		bbb._init(int64(i*2 + 1))
 		bba.assignNode(nodes[source], CCDELAY, int(link.distance/LIGHTSPEED))
 		bbb.assignNode(nodes[target], CCDELAY, int(link.distance/LIGHTSPEED))
 		bba.another = &bbb
@@ -224,14 +224,14 @@ func randomSchedule(threadNum int, graph [][]partition.EdgeAttribute) ([]map[int
 		plan[thread_id][i] = true
 	}
 
-	pState := partition.NewPartitionState(graph, plan, 1, 1,1)
+	pState := partition.NewPartitionState(graph, plan, 1, 1, 1)
 
 	//fmt.Println(plan)
 	return plan, pState.GetLookAhead()
 }
 
 func optimization(graph [][]partition.EdgeAttribute, plan []map[int]bool) ([]map[int]bool, float64) {
-	pState := partition.NewPartitionState(graph, plan, 1, 1,1)
+	pState := partition.NewPartitionState(graph, plan, 1, 1, 1)
 	fmt.Println("initial plan: estimated exe time ", pState.Energy()/1e9, "sec")
 	tsp := goanneal.NewAnnealer(pState)
 	tsp.Steps = 100000

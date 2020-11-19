@@ -48,10 +48,10 @@ func (qsd *QSDetector) _init() {
 	}
 }
 
-func (qsd *QSDetector) init() {
+func (qsd *QSDetector) init(seed int64) {
 	for _, d := range qsd.detectors {
 		if !reflect.DeepEqual(d, Detector{}) {
-			d.init()
+			d.init(seed)
 		}
 	}
 }
@@ -100,7 +100,7 @@ func (qsd *QSDetector) turnOffDetectors() {
 func (qsd *QSDetector) turnOnDetectors() {
 	for _, d := range qsd.detectors {
 		if !(d.on) {
-			d.init()
+			//d.init()
 			d.on = true
 		}
 	}

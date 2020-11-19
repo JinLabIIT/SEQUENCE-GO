@@ -7,7 +7,7 @@ import (
 )
 
 func Main(n int, threadNum int, lookAhead, durTime uint64) {
-	fmt.Println("Ring QKD Network (sequential)")
+	fmt.Println("Ring QKD Network", n, "node", threadNum, "threads")
 
 	tls := make([]*kernel.Timeline, threadNum)
 	nodeOnThread := n / threadNum
@@ -57,7 +57,7 @@ func Main(n int, threadNum int, lookAhead, durTime uint64) {
 		qc.init()
 		lsName := fmt.Sprint(nodes[i].name, ".lightsource")
 		ls := LightSource{name: lsName, timeline: tls[i/nodeOnThread], frequency: 80 * math.Pow10(6), meanPhotonNum: 0.1, directReceiver: &qc, wavelength: 1550, encodingType: polarization()}
-		ls.init()
+		ls.init(int64(i))
 		qc.setSender(&ls)
 		detectors := []*Detector{{efficiency: 0.8, darkCount: 0, timeResolution: 10, countRate: 50 * math.Pow10(6)}, {efficiency: 0.8, darkCount: 0, timeResolution: 10, countRate: 50 * math.Pow10(6)}}
 		qsdName := fmt.Sprint(nodes[(i+1)%totalNodes].name, ".qsdetector")
@@ -65,7 +65,7 @@ func Main(n int, threadNum int, lookAhead, durTime uint64) {
 		qc.setReceiver(&qsd)
 		nodes[i].components["lightSource"] = &ls
 		qsd._init()
-		qsd.init()
+		qsd.init(int64(i))
 		nodes[(i+1)%totalNodes].components["detector"] = &qsd
 	}
 
@@ -76,8 +76,8 @@ func Main(n int, threadNum int, lookAhead, durTime uint64) {
 		bba := BB84{name: bbName, timeline: tls[i/nodeOnThread], role: 0} //alice.role = 0
 		bbName = fmt.Sprint(nodes[(i+1)%totalNodes].name, ".bbb")
 		bbb := BB84{name: bbName, timeline: tls[((i+1)%totalNodes)/nodeOnThread], role: 1} //bob.role = 1
-		bba._init()
-		bbb._init()
+		bba._init(int64(i * 2))
+		bbb._init(int64(i*2 + 1))
 		bba.assignNode(nodes[i], 1*math.Pow10(9), 50000000)
 		bbb.assignNode(nodes[(i+1)%totalNodes], 1*math.Pow10(9), 50000000)
 		bba.another = &bbb
@@ -115,6 +115,10 @@ func Main(n int, threadNum int, lookAhead, durTime uint64) {
 	//	fmt.Print("   sum error rates: ")
 	//	fmt.Println("   ", floats.Sum(parent_protocols[i].child.errorRates)/float64(len(parent_protocols[i].child.errorRates)))
 	//}
+
+	for i := 0; i < len(tls); i++ {
+		fmt.Println(i, tls[i].ExecutedEvent)
+	}
 
 	fmt.Println("sync counter:", tls[0].SyncCounter)
 	fmt.Println("end time", tls[0].Now())
