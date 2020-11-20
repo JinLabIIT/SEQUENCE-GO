@@ -12,12 +12,10 @@ import (
 	"time"
 )
 
-func RandGraphNN(path string, base_seed int) {
-	fmt.Println(path, base_seed)
-	SEED := uint64(base_seed)
+func RandGraphNN(path string, seed1, seed2 int) {
+	fmt.Println(path, seed1, seed2)
+	SEED := uint64(seed1)
 	rand.Seed(SEED)
-
-	SIM_TIME := uint64(rand.Float32()*2e10 + 1e10)
 
 	ATTENUATION := 0.0002
 	QCFIDELITY := 0.99
@@ -48,8 +46,11 @@ func RandGraphNN(path string, base_seed int) {
 
 	randomLinks := randomAttributes(links)
 	graph := createGraph(n, randomLinks, LIGHTSOURCE_MEAN, ATTENUATION, LIGHTSPEED)
-	threadNum := rand.Intn(32) + 1
 
+	SEED = uint64(seed2)
+	rand.Seed(SEED)
+	threadNum := rand.Intn(32) + 1
+	SIM_TIME := uint64(rand.Float32()*2e10 + 1e10)
 	plan, lookAhead := randomSchedule(threadNum, graph)
 
 	//json_plan, _ := json.Marshal(plan)
@@ -178,7 +179,7 @@ func RandGraphNN(path string, base_seed int) {
 	all_content["plan"] = plan
 	all_content["links"] = randomLinks
 	json_all_content, _ := json.Marshal(all_content)
-	log_filename := path + "/log" + strconv.Itoa(base_seed) + ".json"
+	log_filename := path + "/log" + strconv.Itoa(seed1) + "_" + strconv.Itoa(seed2) + ".json"
 	fmt.Println(log_filename)
 	_ = ioutil.WriteFile(log_filename, json_all_content, 0644)
 	/*	for i := 0; i < totalNodes; i++ {
