@@ -4,18 +4,20 @@ import (
 	"encoding/json"
 	"fmt"
 	_ "github.com/gonum/floats"
-	"github.com/matsulib/goanneal"
 	"golang.org/x/exp/rand"
 	"io/ioutil"
 	"kernel"
-	"math"
 	"os"
-	"partition"
+	"strconv"
+	"time"
 )
 
-func RandGraph(threadNum int, filename string, optimized bool) {
-	SEED := uint64(0)
-	SIM_TIME := 2e10
+func RandGraphNN(path string, base_seed int) {
+	fmt.Println(path, base_seed)
+	SEED := uint64(base_seed)
+	rand.Seed(SEED)
+
+	SIM_TIME := uint64(rand.Float32()*2e10 + 1e10)
 
 	ATTENUATION := 0.0002
 	QCFIDELITY := 0.99
@@ -31,7 +33,7 @@ func RandGraph(threadNum int, filename string, optimized bool) {
 
 	KEYSIZE := 512
 
-	jsonFile, err := os.Open(filename)
+	jsonFile, err := os.Open(path + "/graph.json")
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -46,15 +48,17 @@ func RandGraph(threadNum int, filename string, optimized bool) {
 
 	randomLinks := randomAttributes(links)
 	graph := createGraph(n, randomLinks, LIGHTSOURCE_MEAN, ATTENUATION, LIGHTSPEED)
+	threadNum := rand.Intn(32) + 1
 
 	plan, lookAhead := randomSchedule(threadNum, graph)
-	if optimized {
-		plan, lookAhead = optimization(graph, plan)
-	}
+
+	//json_plan, _ := json.Marshal(plan)
+	//fmt.Println(string(json_plan))
+	//
+	//json_content, _ := json.Marshal(randomLinks)
+	//fmt.Println(string(json_content))
 
 	//fmt.Println("n: ", n, "threadNum: ", threadNum, "lookAhead:", lookAhead)
-
-	rand.Seed(SEED)
 
 	tls := make([]*kernel.Timeline, threadNum)
 	for i := 0; i < threadNum; i++ {
@@ -161,8 +165,22 @@ func RandGraph(threadNum int, filename string, optimized bool) {
 		parent_protocols[i].child.timeline.Schedule(&event)
 	}
 
+	tick := time.Now()
 	kernel.Run(tls)
+	tock := time.Now()
 
+	all_content := map[string]interface{}{}
+
+	all_content["node_number"] = n
+	all_content["thread_number"] = threadNum
+	all_content["sim_time"] = SIM_TIME
+	all_content["exe_time"] = tock.Sub(tick)
+	all_content["plan"] = plan
+	all_content["links"] = randomLinks
+	json_all_content, _ := json.Marshal(all_content)
+	log_filename := path + "/log" + strconv.Itoa(base_seed) + ".json"
+	fmt.Println(log_filename)
+	_ = ioutil.WriteFile(log_filename, json_all_content, 0644)
 	/*	for i := 0; i < totalNodes; i++ {
 		fmt.Println(nodes[i].name)
 		fmt.Println("   latency (s): " + fmt.Sprintf("%f", parent_protocols[i].child.latency))
@@ -184,80 +202,4 @@ func RandGraph(threadNum int, filename string, optimized bool) {
 	//for _ , tl := range tls{
 	//	WriteUint64(tl.SyncWindowsEvent,tl.SyncWindowsTime,threadNum,name)
 	//}
-}
-
-type Link struct {
-	Source    int
-	Target    int
-	Frequency float64
-	Distance  float64
-}
-
-func randomAttributes(links []interface{}) []*Link {
-	FREQ_UPPER := 1e8
-	FREQ_LOWER := 1e6
-	DIST_UPPER := 15e3
-	DIST_LOWER := 5e3
-	res := []*Link{}
-	for _, link := range links {
-		source := int(link.(map[string]interface{})["source"].(float64))
-		target := int(link.(map[string]interface{})["target"].(float64))
-		frequency := float64(rand.Intn(int(FREQ_UPPER-FREQ_LOWER))) + FREQ_LOWER
-		distance := float64(rand.Intn(int(DIST_UPPER-DIST_LOWER))) + DIST_LOWER
-		res = append(res, &Link{
-			Source:    source,
-			Target:    target,
-			Frequency: frequency,
-			Distance:  distance,
-		})
-	}
-	return res
-}
-
-func randomSchedule(threadNum int, graph [][]partition.EdgeAttribute) ([]map[int]bool, float64) {
-	plan := make([]map[int]bool, threadNum)
-	for i := 0; i < threadNum; i++ {
-		plan[i] = make(map[int]bool, 0)
-	}
-	for i := 0; i < len(graph); i++ {
-		thread_id := rand.Intn(threadNum)
-		plan[thread_id][i] = true
-	}
-
-	pState := partition.NewPartitionState(graph, plan, 1, 1, 1)
-
-	//fmt.Println(plan)
-	return plan, pState.GetLookAhead()
-}
-
-func optimization(graph [][]partition.EdgeAttribute, plan []map[int]bool) ([]map[int]bool, float64) {
-	pState := partition.NewPartitionState(graph, plan, 1, 1, 1)
-	fmt.Println("initial plan: estimated exe time ", pState.Energy()/1e9, "sec")
-	tsp := goanneal.NewAnnealer(pState)
-	tsp.Steps = 100000
-	afterState, energy := tsp.Anneal()
-	//fmt.Println(afterState.(*partition.PartitionState).State)
-	fmt.Println("optimized plan: estimated exe time ", energy/1e9, "sec")
-	return afterState.(*partition.PartitionState).State, afterState.(*partition.PartitionState).GetLookAhead()
-}
-
-func createGraph(nodeNum int, links []*Link, mean, attenuation, lightspeed float64) [][]partition.EdgeAttribute {
-	graph := make([][]partition.EdgeAttribute, nodeNum)
-	for i := 0; i < nodeNum; i++ {
-		graph[i] = make([]partition.EdgeAttribute, nodeNum)
-	}
-
-	for _, link := range links {
-		source := link.Source
-		target := link.Target
-		weight := link.Frequency * 1e-12 * mean
-		ratio := math.Pow(10, link.Distance*attenuation/-10)
-		qcdelay := link.Distance / lightspeed
-		graph[source][target] = partition.EdgeAttribute{
-			Weight:    weight,
-			Ratio:     ratio,
-			LookAhead: int64(qcdelay),
-		}
-	}
-	return graph
 }
