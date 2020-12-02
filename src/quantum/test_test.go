@@ -30,23 +30,23 @@ func Test100(t *testing.T) {
 				endTime := uint64(8.1 * math.Pow10(4))
 				tl.Init(lookahead,endTime)
 
-				op := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, distance: 10 * math.Pow10(3)}
+				op := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, Distance: 10 * math.Pow10(3)}
 				op._init()
 				qc1 := qc{name: "qc", timeline: &tl, OpticalChannel: op}
 				qc1._init()
 				poisson1 := rng.NewPoissonGenerator(seed)
-				ls1 := ls{name: "Alice.lightSource", timeline: &tl, frequency: 80 * math.Pow10(6), meanPhotonNum: 0.1, directReceiver: &qc1, poisson: poisson1}
+				ls1 := ls{name: "Alice.lightSource", timeline: &tl, Frequency: 80 * math.Pow10(6), meanPhotonNum: 0.1, directReceiver: &qc1, poisson: poisson1}
 				ls1._init()
 				ls1.bs = MakeStateList()
 				qsd1 := qsd{name: "bob.qsdetector", timeline: &tl}
 				qc1.receiver = &qsd1
 
-				op2 := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, distance: 10 * math.Pow10(3)}
+				op2 := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, Distance: 10 * math.Pow10(3)}
 				op2._init()
 				qc2 := qc{name: "qc", timeline: &tl, OpticalChannel: op}
 				qc2._init()
 				poisson2 := rng.NewPoissonGenerator(seed)
-				ls2 := ls{name: "Alice.lightSource", timeline: &tl, frequency: 80 * math.Pow10(6), meanPhotonNum: 0.1, directReceiver: &qc2, poisson: poisson2}
+				ls2 := ls{name: "Alice.lightSource", timeline: &tl, Frequency: 80 * math.Pow10(6), meanPhotonNum: 0.1, directReceiver: &qc2, poisson: poisson2}
 				ls2._init()
 				ls2.bs = MakeStateList()
 				qsd2 := qsd{name: "bob.qsdetector", timeline: &tl}
@@ -95,23 +95,23 @@ func Test100(t *testing.T) {
 				tl.Init(lookahead,endTime)
 				tl2.Init(lookahead,endTime)
 				//tl2 = tl
-				op := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, distance: 10 * math.Pow10(3)}
+				op := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, Distance: 10 * math.Pow10(3)}
 				op._init()
 				qc1 := qc{name: "qc", timeline: &tl2, OpticalChannel: op}
 				qc1._init()
 				poisson1 := rng.NewPoissonGenerator(seed)
-				ls1 := ls{name: "Alice.lightSource", timeline: &tl, frequency: 80 * math.Pow10(6), meanPhotonNum: 0.1, directReceiver: &qc1, poisson: poisson1}
+				ls1 := ls{name: "Alice.lightSource", timeline: &tl, Frequency: 80 * math.Pow10(6), meanPhotonNum: 0.1, directReceiver: &qc1, poisson: poisson1}
 				ls1._init()
 				ls1.bs = MakeStateList()
 				qsd1 := qsd{name: "bob.qsdetector", timeline: &tl2}
 				qc1.receiver = &qsd1
 
-				op2 := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, distance: 10 * math.Pow10(3)}
+				op2 := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, Distance: 10 * math.Pow10(3)}
 				op2._init()
 				qc2 := qc{name: "qc", timeline: &tl, OpticalChannel: op}
 				qc2._init()
 				poisson2 := rng.NewPoissonGenerator(seed)
-				ls2 := ls{name: "Alice.lightSource", timeline: &tl2, frequency: 80 * math.Pow10(6), meanPhotonNum: 0.1, directReceiver: &qc2, poisson: poisson2}
+				ls2 := ls{name: "Alice.lightSource", timeline: &tl2, Frequency: 80 * math.Pow10(6), meanPhotonNum: 0.1, directReceiver: &qc2, poisson: poisson2}
 				ls2._init()
 				ls2.bs = MakeStateList()
 				qsd2 := qsd{name: "bob.qsdetector", timeline: &tl}

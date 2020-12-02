@@ -13,6 +13,8 @@ type QSDetector struct {
 	splitter       *BeamSplitter
 	_switch        *Switch
 	interferometer *Interferometer
+	eventCounter   int
+	first_get_time uint64
 }
 
 func (qsd *QSDetector) _init() {
@@ -58,6 +60,14 @@ func (qsd *QSDetector) init(seed int64) {
 
 func (qsd *QSDetector) get(message kernel.Message) {
 	photon := message["photon"].(*Photon)
+	if qsd.first_get_time == 0 {
+		qsd.first_get_time = qsd.timeline.Now()
+		//fmt.Println(qsd.first_get_time)
+	}
+	qsd.eventCounter += 1
+	//if qsd.timeline.Now() >= qsd.timeline.OutputTime {
+	//	fmt.Println(qsd.timeline.Now(), qsd.eventCounter)
+	//}
 	if qsd.encodingType["name"].(string) == "polarization" {
 		detector := qsd.splitter.get(photon)
 		//if detector == 0 || detector == 1 {

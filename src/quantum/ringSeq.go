@@ -49,19 +49,23 @@ func Main(n int, threadNum int, lookAhead, durTime uint64) {
 		nodes[(i+1)%totalNodes].assignCChannel(cc)
 	}
 
-	// create light source, detector and quantum channels
+	// create light Source, detector and quantum channels
+	all_ls := []*LightSource{}
+	all_qsd := []*QSDetector{}
 	for i := 0; i < totalNodes; i++ {
 		op := OpticalChannel{polarizationFidelity: 0.99, attenuation: 0.0002, distance: distance, lightSpeed: lightSpeed}
 		qcName := fmt.Sprint("qc_", nodes[i].name, "_", nodes[(i+1)%totalNodes].name)
 		qc := QuantumChannel{name: qcName, timeline: tls[i/nodeOnThread], OpticalChannel: op}
 		qc.init()
 		lsName := fmt.Sprint(nodes[i].name, ".lightsource")
-		ls := LightSource{name: lsName, timeline: tls[i/nodeOnThread], frequency: 80 * math.Pow10(6), meanPhotonNum: 0.1, directReceiver: &qc, wavelength: 1550, encodingType: polarization()}
+		ls := LightSource{name: lsName, timeline: tls[i/nodeOnThread], frequency: 71989351, meanPhotonNum: 0.1, directReceiver: &qc, wavelength: 1550, encodingType: polarization()}
+		all_ls = append(all_ls, &ls)
 		ls.init(int64(i))
 		qc.setSender(&ls)
 		detectors := []*Detector{{efficiency: 0.8, darkCount: 0, timeResolution: 10, countRate: 50 * math.Pow10(6)}, {efficiency: 0.8, darkCount: 0, timeResolution: 10, countRate: 50 * math.Pow10(6)}}
 		qsdName := fmt.Sprint(nodes[(i+1)%totalNodes].name, ".qsdetector")
 		qsd := QSDetector{name: qsdName, timeline: tls[((i+1)%totalNodes)/nodeOnThread], detectors: detectors}
+		all_qsd = append(all_qsd, &qsd)
 		qc.setReceiver(&qsd)
 		nodes[i].components["lightSource"] = &ls
 		qsd._init()
@@ -116,10 +120,38 @@ func Main(n int, threadNum int, lookAhead, durTime uint64) {
 	//	fmt.Println("   ", floats.Sum(parent_protocols[i].child.errorRates)/float64(len(parent_protocols[i].child.errorRates)))
 	//}
 
+	total_event := uint64(0)
 	for i := 0; i < len(tls); i++ {
-		fmt.Println(i, tls[i].ExecutedEvent)
+		total_event += tls[i].ExecutedEvent
 	}
+
+	fmt.Println("total event:", total_event)
+
+	cc_counter := 0
+	qc_send := 0
+	qc_recv := 0
+
+	for _, node := range nodes {
+		cc_counter += node.cc_message_counter
+	}
+	fmt.Println("cc event number:", cc_counter)
+
+	for _, qsd := range all_qsd {
+		qc_recv += qsd.eventCounter
+	}
+	fmt.Println("qc recv event number:", qc_recv)
+
+	for _, ls := range all_ls {
+		qc_send += ls.event_counter
+	}
+	fmt.Println("qc send event number:", qc_send)
+
+	fmt.Println("rest events:", total_event-uint64(cc_counter)-uint64(qc_send)-uint64(qc_recv))
 
 	fmt.Println("sync counter:", tls[0].SyncCounter)
 	fmt.Println("end time", tls[0].Now())
+
+	for i, tl := range tls {
+		fmt.Println("tl", i, tl.ExchangedEvent)
+	}
 }

@@ -6,14 +6,15 @@ import (
 )
 
 type Node struct {
-	name       string           // inherit
-	timeline   *kernel.Timeline // inherit
-	components map[string]interface{}
-	count      []int
-	protocols  []interface{} //
-	splitter   *BeamSplitter
-	receiver   *Node
-	cchannels  map[string]*ClassicalChannel
+	name               string           // inherit
+	timeline           *kernel.Timeline // inherit
+	components         map[string]interface{}
+	count              []int
+	protocols          []interface{} //
+	splitter           *BeamSplitter
+	receiver           *Node
+	cchannels          map[string]*ClassicalChannel
+	cc_message_counter int
 }
 
 func (node *Node) HasCCto(dst *Node) bool {
@@ -143,6 +144,7 @@ func (node *Node) sendMessage(msg string, dst string) {
 }
 
 func (node *Node) receiveMessage(message kernel.Message) {
+	node.cc_message_counter++
 	for _, protocol := range node.protocols {
 		protocol.(*BB84).receivedMessage(message)
 	}

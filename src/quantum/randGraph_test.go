@@ -18,16 +18,16 @@ func Test_randGraph(t *testing.T) {
 	}
 	tests := []test{}
 
-	for n := 48; n <= 80; n += 8 {
+	for n := 80; n <= 127; n += 8 {
 		for d := 1.5; d <= 2.5; d += 0.5 {
 			for seed := 0; seed <= 2; seed++ {
-				filename := fmt.Sprintf("../../tools/%d_%.1f_%d.json", n, d, seed)
+				filename := fmt.Sprintf("../../tools/%d_%.1f_%d/graph.json", n, d, seed)
 				for threadNum := 2; threadNum <= 32; threadNum *= 2 {
 					testName := fmt.Sprintf("%s file; %d threads; random schedule", filename, threadNum)
 					arg := args{
 						threadNum: threadNum,
 						path:      filename,
-						optimized: false,
+						optimized: true,
 					}
 					t := test{
 						name: testName,
@@ -38,7 +38,7 @@ func Test_randGraph(t *testing.T) {
 					arg = args{
 						threadNum: threadNum,
 						path:      filename,
-						optimized: true,
+						optimized: false,
 					}
 					t = test{testName, arg}
 					tests = append(tests, t)

@@ -50,8 +50,8 @@ func RandGraphNN(path string, seed1, seed2 int) {
 	SEED = uint64(seed2)
 	rand.Seed(SEED)
 	threadNum := rand.Intn(32) + 1
-	SIM_TIME := uint64(rand.Float32()*2e10 + 1e10)
-	plan, lookAhead := randomSchedule(threadNum, graph)
+	SIM_TIME := float64(rand.Float32()*2e10 + 1e10)
+	plan, lookAhead := randomSchedule(SIM_TIME, threadNum, graph)
 
 	//json_plan, _ := json.Marshal(plan)
 	//fmt.Println(string(json_plan))

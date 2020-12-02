@@ -52,7 +52,7 @@ func (l *ls) emit(message kernel.Message) {
 	//fmt.Println("emit message")
 	time := l.timeline.Now()
 	stateList := message["stateList"].(*[][]complex128)
-	//sep := uint64(math.Round(math.Pow10(12) / l.frequency))
+	//sep := uint64(math.Round(math.Pow10(12) / l.Frequency))
 	sep := uint64(0)
 	for i, state := range *stateList {
 		numPhotons := l.poisson.Poisson(l.meanPhotonNum) //question mark
@@ -77,7 +77,7 @@ func (l *ls) _emit(message kernel.Message) {
 	state := message["state"].([]complex128)
 	index := message["index"].(int)
 	time := l.timeline.Now()
-	//sep := uint64(math.Round(math.Pow10(12) / l.frequency))
+	//sep := uint64(math.Round(math.Pow10(12) / l.Frequency))
 	sep := uint64(0)
 	for i := 0; i < int(numPhotons); i++ {
 		//wavelength := l.lineWidth*rand.NormFloat64() + l.wavelength
@@ -121,7 +121,7 @@ type qc struct {
 
 func (q *qc) get(message kernel.Message) {
 	photon := message["photon"].(float64)
-	//loss := q.distance * q.attenuation
+	//loss := q.Distance * q.attenuation
 	//chancePhotonKept := math.Pow(10, loss/-10)
 	// check if photon kept
 	//if rand.Float64() < chancePhotonKept { // numpy.random.random_sample()

@@ -58,7 +58,7 @@ func (bb84 *BB84) assignNode(node *Node, cdelay float64, qdelay int) {
 	//cchannel := node.components["cchannel"].(*ClassicalChannel)
 	//qchannel := node.components["qchannel"].(*QuantumChannel)
 	//bb84.classicalDelay = cchannel.delay
-	//bb84.quantumDelay = int(math.Round(qchannel.distance / qchannel.lightSpeed))
+	//bb84.quantumDelay = int(math.Round(qchannel.Distance / qchannel.lightSpeed))
 	bb84.quantumDelay = qdelay
 	bb84.classicalDelay = cdelay
 	node.protocols = append(node.protocols, bb84)

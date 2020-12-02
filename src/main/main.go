@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"quantum"
 	"strconv"
@@ -18,7 +17,7 @@ func a() {
 	totalNodes, _ := strconv.Atoi(os.Args[1])
 	totalThreads, _ := strconv.Atoi(os.Args[2])
 	past := time.Now()
-	quantum.Main(totalNodes, totalThreads, 50000000, uint64(math.Pow10(10)))
+	quantum.Main(totalNodes, totalThreads, 50000000, 16847704064)
 	now := time.Now()
 	fmt.Println("totalThreads is:", totalThreads, "Total consumption time is:", now.Sub(past))
 }

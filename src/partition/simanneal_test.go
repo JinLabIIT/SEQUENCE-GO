@@ -316,8 +316,8 @@ func TestPartitionState_getMaxExeTime(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			self := NewPartitionState(tt.fields.graph, tt.fields.state, tt.fields.vMoveProb, 100, tt.fields.seed)
-			if got := self.getMaxExeTime(tt.args.lookahead); got < 0 {
-				t.Errorf("getMaxExeTime() = %v, want larger than 0", got)
+			if got := self.getComputeTime(tt.args.lookahead); got < 0 {
+				t.Errorf("getComputeTime() = %v, want larger than 0", got)
 			}
 		})
 	}
@@ -376,8 +376,8 @@ func TestPartitionState_getMaxMergeTime(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			self := NewPartitionState(tt.fields.graph, tt.fields.state, tt.fields.vMoveProb, 100, tt.fields.seed)
-			if got := self.getMaxMergeTime(tt.args.lookahead); got < 0 {
-				t.Errorf("getMaxMergeTime() = %v, want larger than 0", got)
+			if got := self.getCommTime(tt.args.lookahead); got < 0 {
+				t.Errorf("getCommTime() = %v, want larger than 0", got)
 			}
 		})
 	}
