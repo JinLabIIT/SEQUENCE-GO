@@ -3,9 +3,11 @@ package kernel
 import (
 	"fmt"
 	"math"
+	"math/rand"
 	_ "reflect"
 	_ "runtime"
 	"sync"
+	"time"
 	_ "time"
 )
 
@@ -21,6 +23,9 @@ type Timeline struct {
 	executedEvent  uint64
 	scheduledEvent uint64
 	SyncCounter    uint64
+	Type_counter   map[string]int
+	Type_timer     map[string]float32
+	Type_sample    map[string][]float32
 }
 
 func (t *Timeline) Init(lookahead, endTime uint64) {
@@ -30,6 +35,9 @@ func (t *Timeline) Init(lookahead, endTime uint64) {
 	t.scheduledEvent = 0
 	t.LookAhead = lookahead
 	t.endTime = endTime
+	t.Type_counter = map[string]int{"qc": 0, "cc": 0, "other": 0}
+	t.Type_timer = map[string]float32{"qc": 0, "cc": 0, "other": 0}
+	t.Type_sample = map[string][]float32{"qc": []float32{}, "cc": []float32{}, "other": []float32{}}
 }
 
 func (t *Timeline) SetEndTime(endTime uint64) {
@@ -105,7 +113,44 @@ func (t *Timeline) syncWindow() {
 		}
 		t.time = event.Time
 		t.executedEvent += 1
+		tick := time.Now()
 		event.Process.run()
+		duration := time.Since(tick) / time.Nanosecond
+		event_type := ""
+		if _, ok := event.Process.Message["photon"]; ok {
+			t.Type_counter["qc"]++
+			t.Type_timer["qc"] += float32(duration) / 1e9
+			event_type = "qc"
+		} else if _, ok := event.Process.Message["message"]; ok {
+			t.Type_counter["cc"]++
+			t.Type_timer["cc"] += float32(duration) / 1e9
+			event_type = "cc"
+		} else if _, ok := event.Process.Message["state"]; ok {
+			t.Type_counter["qc"]++
+			t.Type_timer["qc"] += float32(duration) / 1e9
+			event_type = "qc"
+		} else {
+			t.Type_counter["other"]++
+			t.Type_timer["other"] += float32(duration) / 1e9
+			event_type = "other"
+			//fmt.Println(event.Process.Message)
+		}
+		if event_type == "qc" {
+			sample := rand.Float32()
+			if sample < 0.0001 {
+				t.Type_sample["qc"] = append(t.Type_sample["qc"], float32(duration))
+			}
+		} else if event_type == "cc" {
+			sample := rand.Float32()
+			if sample < 0.1 {
+				t.Type_sample["cc"] = append(t.Type_sample["cc"], float32(duration))
+			}
+		} else {
+			sample := rand.Float32()
+			if sample < 0.1 {
+				t.Type_sample["other"] = append(t.Type_sample["other"], float32(duration))
+			}
+		}
 	}
 }
 

@@ -1,10 +1,11 @@
 package quantum
 
 import (
-	"github.com/gonum/floats"
+	"encoding/json"
 	"github.com/leesper/go_rng"
 	"golang.org/x/exp/errors/fmt"
 	"golang.org/x/exp/rand"
+	"io/ioutil"
 	"kernel"
 	"math"
 	"strconv"
@@ -372,6 +373,19 @@ func (parent *Parent) getKeyFromBB84(key []uint64) {
 	parent.key = key
 }
 
+type Result struct {
+	Key_num      int
+	Qc_num       int
+	Cc_num       int
+	Other_num    int
+	Qc_time      float32
+	Cc_time      float32
+	Other_time   float32
+	Qc_sample    []float32
+	Cc_sample    []float32
+	Other_sample []float32
+}
+
 func BB84Test() {
 	//SIM_TIME := 2e10
 
@@ -394,7 +408,7 @@ func BB84Test() {
 	//poisson := rng.NewPoissonGenerator(seed)
 	tl := kernel.Timeline{Name: "timeline", LookAhead: math.MaxInt64}
 	tl.Init(math.MaxUint64, uint64(math.Pow10(11)))
-	tl.SetEndTime(uint64(math.Pow10(11))) //stop time is 100 ms
+	tl.SetEndTime(uint64(1 * math.Pow10(12))) //stop time is 10 s
 	op := OpticalChannel{polarizationFidelity: QCFIDELITY, attenuation: ATTENUATION, distance: DISTANCE, lightSpeed: LIGHTSPEED}
 	qc := QuantumChannel{name: "qc", timeline: &tl, OpticalChannel: op}
 	qc.init()
@@ -452,14 +466,30 @@ func BB84Test() {
 	tl.Schedule(&event)
 	kernel.Run([]*kernel.Timeline{&tl})
 
-	fmt.Println("latency (s): " + fmt.Sprintf("%f", bba.latency))
+	//fmt.Println("latency (s): " + fmt.Sprintf("%f", bba.latency))
 	//fmt.Println("average throughput (Mb/s): "+fmt.Sprintf("%f",math.Pow10(-6) * sum(bba.throughputs) / len(bba.throughputs)))
-	fmt.Print("average throughput (Mb/s): ")
-	fmt.Println(1e-6 * floats.Sum(bba.throughPuts) / float64(len(bba.errorRates)))
-	fmt.Println("bit error rates:")
-	for i, e := range bba.errorRates {
-		fmt.Println("\tkey " + strconv.Itoa(i+1) + ":\t" + fmt.Sprintf("%f", e*100) + "%")
+	//fmt.Print("average throughput (Mb/s): ")
+	//fmt.Println(1e-6 * floats.Sum(bba.throughPuts) / float64(len(bba.errorRates)))
+	//fmt.Println("bit error rates:")
+	//for i, e := range bba.errorRates {
+	//	fmt.Println("\tkey " + strconv.Itoa(i+1) + ":\t" + fmt.Sprintf("%f", e*100) + "%")
+	//}
+	//fmt.Println("sum error rates: ")
+	//fmt.Print(floats.Sum(bba.errorRates) / float64(len(bba.errorRates)))
+
+	result := Result{
+		Key_num:      len(bba.errorRates),
+		Qc_num:       tl.Type_counter["qc"],
+		Cc_num:       tl.Type_counter["cc"],
+		Other_num:    tl.Type_counter["other"],
+		Qc_time:      tl.Type_timer["qc"],
+		Cc_time:      tl.Type_timer["cc"],
+		Other_time:   tl.Type_timer["other"],
+		Qc_sample:    tl.Type_sample["qc"],
+		Cc_sample:    tl.Type_sample["cc"],
+		Other_sample: tl.Type_sample["other"],
 	}
-	fmt.Println("sum error rates: ")
-	fmt.Print(floats.Sum(bba.errorRates) / float64(len(bba.errorRates)))
+
+	file, _ := json.MarshalIndent(result, "", "")
+	_ = ioutil.WriteFile("result.json", file, 0644)
 }
